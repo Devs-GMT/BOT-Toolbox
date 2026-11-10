@@ -1,0 +1,8 @@
+{
+  "network": "botTestnet",
+  "chainId": 968,
+  "address": "0x641c69B5641774A744F26f83B431c67638F912c3",
+  "deployTx": "0x2ea3015a0847e5722d5494a8301babfb1cea619fa1f5f69be148bdb007c271d7",
+  "block": 29957019,
+  "runtimeCodeHash": "0x8241009553373de2419a6a65196f01617a4b72dafaa0833148ca766bf727a724"
+}
