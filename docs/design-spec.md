@@ -193,3 +193,21 @@ The PRD fixes the content, the 9 sections, the tools, the footer and the states.
 | Motion | GSAP with the reference numbers: 0.8s reveals, 80ms stagger, custom ease `0.22, 1, 0.36, 1`, transform and opacity only. Signature interactions: typing cursor, result flash (vermilion to paper, 400ms), odometer block number |
 | Icons | 8 custom 1.5px line icons, square caps, matching the hexagon logo |
 | Keyboard hints | lowercase mono chips: `ctrl k` |
+
+## 9. Second pass: closer to the reference (Nov 11)
+
+A deeper study (measured, not eyeballed) showed where the first build drifted. The site now follows these reference patterns, still with BOT Toolbox's own logo, copy and vermilion accent:
+
+| Pattern | Measured on the reference | Now on BOT Toolbox |
+| --- | --- | --- |
+| Nav | two floating tiles, not a bar: logo tile and link group, paper at 70% + `backdrop-filter: blur(12px)`, radius 8, 1px ink ring at 5%, inset white highlight | same, and both tiles turn to dark glass over dark sections |
+| Display type | serif, 400, -0.02em, centred hero | Newsreader 400, centred hero, serif section heads |
+| Hero background | 6px dot grid (`radial-gradient` 1.85px dots), cursor spotlight mask 110px | 6px dot grid with a cursor spotlight |
+| Hero product | dark app window 1266px wide, radius 16, ring `rgba(250,251,247,.12)` and a deep shadow; a 403px floating panel offset 52px down and 30px past the right edge | same sizes; the panel is "Copy as code" |
+| Content column | 1080px | 1080px |
+| Steps | dark grain field; each row is a 416px copy column + 652px "grain window" (radius 8, `linear-gradient(168deg, #463F39, #AD8068 40%, #4B403B 80%)`, 6px dots, inner dark panel radius 6, 36px inset), alternating sides, 12px gap | same structure; the four mini demos now live in dark panels |
+| Step label | 13px uppercase, accent colour, number first | same, vermilion tint on dark |
+| Agent library | heading left, paragraph and link right; list of agents left, detail card (radius 10, translucent paper, warm shadow) on a sunset gradient right | the eight tools as the list; the detail card shows a real example result per tool, auto-advances every 5 s, hover or click to pick |
+| Three cards | 352 x 400 art cards with dots, a small UI card inside, title and text below | shareable links, ctrl K, copy as code |
+| Tail | closing CTA, blog row and footer on dark, dashed hairlines between footer columns, status pills | closing CTA, guides row, footer with dashed columns, status pills and the live system check |
+| Buttons | pills, sans 15px | pills, Inter |

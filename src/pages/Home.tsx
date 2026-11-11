@@ -1,36 +1,32 @@
 import { gsap } from "gsap";
-import { CustomEase } from "gsap/CustomEase";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Wallet, getAddress } from "ethers";
+import { Wallet, formatUnits, getAddress } from "ethers";
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { Link } from "react-router-dom";
-import { Footer, SiteNav } from "../components/Site";
+import { Footer, SiteNav, useStatementsTotal } from "../components/Site";
 import { Icon } from "../components/icons";
 import { openPalette } from "../components/CommandPalette";
 import { Odometer } from "../components/ui";
-import { APP_NET, NETWORKS, TOOLS } from "../lib/config";
+import { APP_NET, NETWORKS, TOOLS, type ToolSlug } from "../lib/config";
 import { getProvider, useChainStatus, withRetry } from "../lib/rpc";
 import { getStatement, isDeployed, statementsAddress, type StatementView } from "../lib/statements";
-import { allUnits, decodeCall, encodeCall, groupDigits, keccakText, selectorOf, short, toBase, topicOf, type UnitField } from "../lib/tools";
+import { allUnits, decodeCall, encodeCall, groupDigits, selectorOf, short, toBase, type UnitField } from "../lib/tools";
 import { GUIDES } from "./Guides";
+import HeroTour from "./HeroTour";
+import { flash, q, typeTo } from "../lib/motion";
 
-gsap.registerPlugin(ScrollTrigger, CustomEase);
-CustomEase.create("ref", "0.22,1,0.36,1"); // the reference site's signature ease
-
-const q = <T extends HTMLElement>(r: RefObject<T>) => r.current as T;
 const trim0 = (s: string) => s.replace(/\.0$/, "");
+const gwei = (wei: bigint) => (Number(wei) / 1e9).toLocaleString("en-US", { maximumFractionDigits: 2 });
 
-/** Run a timeline once when the root scrolls into view. Reduced motion shows the final state with no timeline. */
+/** Run a timeline once when the root scrolls into view. Reduced motion shows the final state. */
 function useDemo(root: RefObject<HTMLElement>, build: (tl: gsap.core.Timeline) => void, final: () => void, deps: unknown[] = []) {
   useLayoutEffect(() => {
     const mm = gsap.matchMedia();
-    mm.add("(prefers-reduced-motion: reduce)", () => {
-      final();
-    });
+    mm.add("(prefers-reduced-motion: reduce)", () => final());
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const tl = gsap.timeline({ paused: true });
       build(tl);
-      const st = ScrollTrigger.create({ trigger: root.current, start: "top 80%", once: true, onEnter: () => tl.play() });
+      const st = ScrollTrigger.create({ trigger: root.current, start: "top 78%", once: true, onEnter: () => tl.play() });
       return () => {
         st.kill();
         tl.kill();
@@ -41,23 +37,29 @@ function useDemo(root: RefObject<HTMLElement>, build: (tl: gsap.core.Timeline) =
   }, deps);
 }
 
-function typeTo(tl: gsap.core.Timeline, el: HTMLElement, text: string, at: number | string, dur: number, done?: () => void) {
-  const o = { n: 0 };
-  tl.to(o, { n: text.length, duration: dur, ease: "none", onUpdate: () => void (el.textContent = text.slice(0, Math.round(o.n))), onComplete: done }, at);
+/** Feeds --mx / --my to the [data-field] under the pointer so its dot field can light up around the cursor. */
+function useFieldPointer() {
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const el = (e.target as HTMLElement | null)?.closest?.("[data-field]") as HTMLElement | null;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      el.style.setProperty("--my", `${e.clientY - r.top}px`);
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => window.removeEventListener("pointermove", onMove);
+  }, []);
 }
 
-function flash(tl: gsap.core.Timeline, el: HTMLElement, at: number | string) {
-  // immediateRender: false, otherwise the "from" state (a visible flash) is painted before the timeline reaches this point.
-  tl.fromTo(el, { opacity: 0.4 }, { opacity: 0, duration: 0.45, ease: "ref", immediateRender: false }, at);
-}
-
+/** Reference scroll reveal: opacity + 1rem rise, 0.8 s, 80 ms stagger. */
 function useReveal(root: RefObject<HTMLElement>, selector = ".rv") {
   useLayoutEffect(() => {
     const mm = gsap.matchMedia();
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const els = root.current?.querySelectorAll(selector);
       if (!els?.length) return;
-      const tween = gsap.from(els, { opacity: 0, y: 16, duration: 0.8, ease: "ref", stagger: 0.08, scrollTrigger: { trigger: root.current, start: "top 80%", once: true } });
+      const tween = gsap.from(els, { opacity: 0, y: 16, duration: 0.8, ease: "ref", stagger: 0.08, scrollTrigger: { trigger: root.current, start: "top 82%", once: true } });
       return () => {
         tween.scrollTrigger?.kill();
         tween.kill();
@@ -68,10 +70,59 @@ function useReveal(root: RefObject<HTMLElement>, selector = ".rv") {
 }
 
 // ======================================================================
-// 1. Hero + app mockup
+// 0. Intro veil: a brown mass rises off the screen, then the hero appears
 // ======================================================================
 
-const HERO_CMD = "selector transfer(address,uint256)";
+let introDone = false;
+
+function IntroVeil() {
+  const veil = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  const [show] = useState(!introDone);
+  useLayoutEffect(() => {
+    if (introDone) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      introDone = true;
+      q(veil).style.display = "none";
+      return;
+    }
+    const html = document.documentElement;
+    html.style.overflow = "hidden";
+    window.scrollTo(0, 0);
+    const h = window.innerHeight;
+    const tween = gsap.fromTo(
+      q(inner),
+      { y: 0 },
+      {
+        y: -h * 2.35,
+        duration: 2.1,
+        ease: "power3.inOut",
+        delay: 0.25,
+        onComplete: () => {
+          introDone = true;
+          q(veil).style.display = "none";
+          html.style.overflow = "";
+        },
+      }
+    );
+    return () => {
+      tween.kill();
+      html.style.overflow = "";
+    };
+  }, []);
+  if (!show) return null;
+  return (
+    <div className="veil" ref={veil} aria-hidden="true">
+      <div className="veil-in" ref={inner} />
+    </div>
+  );
+}
+
+// ======================================================================
+// 1. Hero: centred serif headline, glow that follows the mouse, and a
+//    looping tour of the real toolbox UI inside the window
+// ======================================================================
+
 const HERO_SIG = "transfer(address,uint256)";
 
 function Hero() {
@@ -79,163 +130,121 @@ function Hero() {
   const h1 = useRef<HTMLHeadingElement>(null);
   const sub = useRef<HTMLParagraphElement>(null);
   const cta = useRef<HTMLDivElement>(null);
-  const wrap = useRef<HTMLDivElement>(null);
-  const typed = useRef<HTMLSpanElement>(null);
-  const ph = useRef<HTMLSpanElement>(null);
-  const sigEl = useRef<HTMLDivElement>(null);
-  const resEl = useRef<HTMLSpanElement>(null);
-  const fl = useRef<HTMLSpanElement>(null);
-  const list = useRef<HTMLUListElement>(null);
-  const side = useRef<HTMLDivElement>(null);
-  const toolsN = useRef<HTMLElement>(null);
-  const st = useChainStatus(APP_NET);
+  const stage = useRef<HTMLDivElement>(null);
+  const glow = useRef<HTMLDivElement>(null);
+  const tourDelay = introDone ? 1.6 : 2.8;
 
-  const sel = selectorOf(HERO_SIG);
-  const rows = [
-    { k: "selector", a: HERO_SIG, b: sel },
-    { k: "topic0", a: "Transfer(address,address,uint256)", b: short(topicOf("Transfer(address,address,uint256)"), 10, 6) },
-    { k: "units", a: "1.5 BOT", b: `${groupDigits(trim0(allUnits(toBase("bot", "1.5", 6), 6).gwei))} gwei` },
-    { k: "keccak", a: '"hello"', b: short(keccakText("hello"), 10, 6) },
-  ];
-
-  const showFinal = () => {
-    q(typed).textContent = HERO_CMD;
-    q(ph).style.display = "none";
-    q(sigEl).textContent = HERO_SIG;
-    q(resEl).textContent = sel;
-    q(toolsN).textContent = "8";
-    side.current?.children[1]?.classList.add("on");
+  const onMove = (e: React.MouseEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
+    e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
   };
 
   useLayoutEffect(() => {
     const mm = gsap.matchMedia();
-    mm.add("(prefers-reduced-motion: reduce)", showFinal);
     mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const base = introDone ? 0 : 1.2;
       const words = q(h1).querySelectorAll(".w");
-      const items = q(list).children;
-      q(ph).style.display = "";
-      const tl = gsap.timeline({ defaults: { ease: "ref" } });
-      tl.from(words, { opacity: 0, y: 12, duration: 0.45, stagger: 0.07 }, 0)
-        .from([q(sub), q(cta)], { opacity: 0, y: 8, duration: 0.45, stagger: 0.1 }, 0.5)
-        .from(q(wrap), { opacity: 0, y: 24, duration: 0.8 }, 0.6);
-      gsap.set(items, { opacity: 0, y: 8 });
-      q(sigEl).textContent = "";
-      q(resEl).textContent = "";
-      q(toolsN).textContent = "0";
-      q(typed).textContent = "";
-      side.current?.children[1]?.classList.remove("on");
-      // typing sequence, then the result flash, then the list and stat strip
-      tl.call(() => void (q(ph).style.display = "none"), [], 1.35);
-      typeTo(tl, q(typed), HERO_CMD, 1.4, 1.7);
-      tl.call(() => {
-        side.current?.children[1]?.classList.add("on");
-        q(sigEl).textContent = HERO_SIG;
-      }, [], 3.15);
-      tl.call(() => void (q(resEl).textContent = sel), [], 3.3);
-      flash(tl, q(fl), 3.3);
-      tl.to(items, { opacity: 1, y: 0, duration: 0.45, stagger: 0.09, ease: "ref" }, 3.5);
-      const n = { v: 0 };
-      tl.to(n, { v: 8, duration: 0.9, ease: "power2.out", onUpdate: () => void (q(toolsN).textContent = String(Math.round(n.v))) }, 3.9);
+      const tl = gsap.timeline({ defaults: { ease: "ref" }, delay: base });
+      tl.from(words, { opacity: 0, y: 10, duration: 0.45, stagger: 0.06 }, 0.1)
+        .from([q(sub), q(cta)], { opacity: 0, y: 6, duration: 0.45, stagger: 0.1 }, 0.5)
+        .from(q(stage), { opacity: 0, y: 28, duration: 0.8 }, 0.6);
+
+      // glow: three blobs ease toward the pointer at different strengths
+      const blobs = [...q(glow).children] as HTMLElement[];
+      const quick = blobs.map((b, i) => ({
+        x: gsap.quickTo(b, "x", { duration: 1.4 + i * 0.35, ease: "power3.out" }),
+        y: gsap.quickTo(b, "y", { duration: 1.4 + i * 0.35, ease: "power3.out" }),
+        k: [0.34, 0.22, 0.14][i],
+      }));
+      const move = (e: MouseEvent) => {
+        const r = q(root).getBoundingClientRect();
+        const dx = e.clientX - r.left - r.width / 2;
+        const dy = e.clientY - r.top - Math.min(r.height * 0.55, 560);
+        quick.forEach((qk) => {
+          qk.x(dx * qk.k);
+          qk.y(Math.max(-90, Math.min(90, dy * qk.k * 0.6)));
+        });
+      };
+      const drift = gsap.to(blobs, { scale: 1.08, duration: 5, ease: "sine.inOut", yoyo: true, repeat: -1, stagger: { each: 1.2, from: "start" } });
+      window.addEventListener("mousemove", move, { passive: true });
       return () => {
+        window.removeEventListener("mousemove", move);
+        drift.kill();
         tl.kill();
+        gsap.set(blobs, { clearProps: "all" });
       };
     });
     return () => mm.revert();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <section className="hero" ref={root} aria-label="Introduction">
-      <h1 ref={h1}>
-        <span className="w">Dev </span><span className="w">chores </span><span className="w">that </span>
-        <br />
-        <span className="w">do </span><span className="w">themselves<span className="cursor" aria-hidden="true" /></span>
-      </h1>
-      <p className="sub" ref={sub}>Every converter, hash, encoder and signer you keep googling — one fast page for BOT Chain. No servers, no sign-up.</p>
-      <div className="cta" ref={cta}>
-        <Link to="/tools" className="btn btn-accent">open the toolbox →</Link>
-        <span className="muted mono" style={{ fontSize: 13 }}>or press <button className="kbd" onClick={openPalette} style={{ cursor: "pointer" }}>ctrl k</button></span>
+    <section className="hero" ref={root} onMouseMove={onMove} aria-label="Introduction">
+      <span className="dots" aria-hidden="true" />
+      <span className="spot" aria-hidden="true" />
+      <div className="glow" ref={glow} aria-hidden="true"><i className="g1" /><i className="g2" /><i className="g3" /></div>
+      <div className="hero-copy">
+        <h1 ref={h1}>
+          <span className="w">Dev </span><span className="w">chores </span><span className="w">that </span><span className="w">do </span><span className="w">themselves.</span>
+        </h1>
+        <p className="sub" ref={sub}>Every converter, hash, encoder and signer you keep googling — one fast page for BOT Chain. No servers, no sign-up.</p>
+        <div className="cta" ref={cta}>
+          <Link to="/tools" className="btn btn-ink">Open the toolbox</Link>
+          <span className="hint-k">or press <button className="kbd" onClick={openPalette} style={{ cursor: "pointer" }}>ctrl k</button></span>
+        </div>
       </div>
 
-      <div className="mockwrap" ref={wrap} role="img" aria-label="Preview of the BOT Toolbox app: a command bar typing a selector request and the result 0xa9059cbb">
-        <div className="mock" aria-hidden="true">
-          <div className="mock-bar">
-            <div className="mock-cmd">
-              <Icon name="search" size={15} />
-              <span className="typed" ref={typed} />
-              <span className="ph" ref={ph}>Find a tool…</span>
-              <i className="caret" />
-            </div>
-            <div className="mock-meta">
-              <span><i className="sq ok" /> {NETWORKS[APP_NET].label}</span>
-              <span>{st.loaded ? <Odometer value={st.blockNumber} /> : "…"}</span>
-            </div>
-          </div>
-          <div className="mock-body">
-            <div className="mock-side" ref={side}>
-              {TOOLS.map((t) => (
-                <div key={t.slug}><Icon name={t.slug} size={16} /><span>{t.name}</span></div>
-              ))}
-            </div>
-            <div className="mock-main">
-              <div className="mock-card">
-                <div className="tcard-hd"><span className="name"><i className="sq" />02 hash.selector</span><span className="muted">ready</span></div>
-                <div className="tcard-bd">
-                  <div><div className="lbl">signature</div><div className="mock-field" ref={sigEl} /></div>
-                  <div>
-                    <div className="lbl">selector</div>
-                    <div className="mock-res"><span ref={resEl} style={{ position: "relative", zIndex: 1 }} /><span className="fl" ref={fl} /></div>
-                  </div>
-                </div>
-              </div>
-              <ul className="mock-list" ref={list}>
-                {rows.map((r) => (
-                  <li key={r.k}><span>{r.k}</span><b>{r.a}</b><b>{r.b}</b></li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="mock-strip">
-            <span><b ref={toolsN}>8</b> tools</span>
-            <span><b>0</b> servers</span>
-            <span><i className="sq ok" /> block <b>{st.loaded ? <Odometer value={st.blockNumber} /> : "…"}</b> live</span>
-            <span>gas <b>{st.loaded ? `${(Number(st.gasPrice) / 1e9).toLocaleString("en-US", { maximumFractionDigits: 2 })} gwei` : "…"}</b></span>
-          </div>
-        </div>
+      <div className="stage" ref={stage} role="group" aria-label="A tour of the real BOT Toolbox app: hash, units, ABI, address, gas, sign and a verified statement">
+        <HeroTour startDelay={tourDelay} />
       </div>
     </section>
   );
 }
 
 // ======================================================================
-// 2. Trust bar: only what the site really uses
+// 2. Trust bar — only what the site really uses
 // ======================================================================
 
 function Trust() {
   return (
     <section className="trust" aria-label="Built on">
-      <span className="lbl">built on</span>
-      {["ethers.js", "OpenZeppelin", "BOT Chain RPC", "MetaMask"].map((n) => <span className="chip" key={n}>{n}</span>)}
+      <p>Built on the tools BOT Chain developers already use</p>
+      <div className="marks">
+        <span className="m">ethers.js</span>
+        <span>OpenZeppelin</span>
+        <span className="s">BOT Chain RPC</span>
+        <span>MetaMask</span>
+      </div>
+    </section>
+  );
+}
+
+function Statement() {
+  const root = useRef<HTMLElement>(null);
+  useReveal(root);
+  return (
+    <section className="intro" ref={root} data-dark>
+      <h2 className="rv">BOT Toolbox does the small chores of building on BOT Chain, <em>so you can keep shipping.</em></h2>
     </section>
   );
 }
 
 // ======================================================================
-// 3-6. Numbered steps with mini demos
+// 3-6. Numbered steps on the dark grain band
 // ======================================================================
 
-function Step({ n, label, title, children, link, flip, demo }: { n: string; label: string; title: string; children: React.ReactNode; link: { to: string; text: string }; flip?: boolean; demo: React.ReactNode }) {
+function Step({ n, label, title, children, link, flip, tone, demo }: { n: string; label: string; title: string; children: React.ReactNode; link: { to: string; text: string }; flip?: boolean; tone: string; demo: React.ReactNode }) {
   const root = useRef<HTMLDivElement>(null);
   useReveal(root);
   return (
-    <div className={`step${flip ? " flip" : ""}`} ref={root}>
-      <div className="step-copy">
-        <div className="step-label rv">{n} · {label}</div>
+    <div className={`srow${flip ? " flip" : ""}`} ref={root}>
+      <div className="scopy">
+        <div className="slabel rv"><span>{n}</span><span>{label}</span></div>
         <h3 className="rv">{title}</h3>
         <p className="rv">{children}</p>
         <Link to={link.to} className="rv">{link.text} →</Link>
       </div>
-      <div className="frame rv">{demo}</div>
+      <div className={`gwin ${tone} rv`} data-field><i className="fd" aria-hidden="true" />{demo}</div>
     </div>
   );
 }
@@ -261,13 +270,13 @@ function UnitsDemo() {
     () => apply("bot", "1.5")
   );
   return (
-    <div className="demo" ref={root} aria-label="Units demo">
-      <div className="tcard-hd"><span className="name"><i className="sq" />01 units.convert</span><span className="muted">live</span></div>
-      <div className="demo-bd">
+    <div className="dpanel" ref={root}>
+      <div className="dp-hd"><span className="nm"><i className="sq" />01 units.convert</span><span>live</span></div>
+      <div className="dp-bd">
         {(["wei", "gwei", "bot"] as const).map((f) => (
-          <div className="row" key={f}><span>{f === "bot" ? "BOT" : f}</span><div className="val" ref={box[f]}><span ref={refs[f]} /></div></div>
+          <div className="dp-row" key={f}><span>{f === "bot" ? "BOT" : f}</span><div className="dp-val" ref={box[f]}><span ref={refs[f]} /></div></div>
         ))}
-        <div className="demo-note">Type in any field, the others follow.</div>
+        <div className="dp-note">Type in any field, the others follow.</div>
       </div>
     </div>
   );
@@ -281,10 +290,9 @@ function HashDemo() {
   const sel = useRef<HTMLSpanElement>(null);
   const fl = useRef<HTMLSpanElement>(null);
   const body = useRef<HTMLTableSectionElement>(null);
-  const call = encodeCall(HERO_SIG, `["${DEAD}", "1000"]`);
-  const dec = decodeCall(HERO_SIG, call);
+  const dec = decodeCall(HERO_SIG, encodeCall(HERO_SIG, `["${DEAD}", "1000"]`));
   const args = dec.args as string[];
-  const rowsData: [string, string, string][] = [["selector", "bytes4", dec.selector], ["to", "address", short(args[0], 8, 6)], ["amount", "uint256", args[1]]];
+  const rows: [string, string, string][] = [["selector", "bytes4", dec.selector], ["to", "address", short(args[0], 8, 6)], ["amount", "uint256", args[1]]];
   useDemo(
     root,
     (tl) => {
@@ -302,16 +310,14 @@ function HashDemo() {
     }
   );
   return (
-    <div className="demo" ref={root} aria-label="Hash and ABI demo">
-      <div className="tcard-hd"><span className="name"><i className="sq" />02 hash + 03 abi</span><span className="muted">offline</span></div>
-      <div className="demo-bd">
-        <div className="row"><span>sig</span><div className="val"><span ref={sig} /></div></div>
-        <div className="row"><span>selector</span><div className="val hl"><span ref={sel} style={{ position: "relative", zIndex: 1, fontWeight: 600 }} /><span className="fl" ref={fl} /></div></div>
-        <table className="tbl">
+    <div className="dpanel" ref={root}>
+      <div className="dp-hd"><span className="nm"><i className="sq" />02 hash + 03 abi</span><span>offline</span></div>
+      <div className="dp-bd">
+        <div className="dp-row"><span>sig</span><div className="dp-val"><span ref={sig} /></div></div>
+        <div className="dp-row"><span>selector</span><div className="dp-val hl"><span ref={sel} style={{ position: "relative", zIndex: 1, fontWeight: 600 }} /><span className="fl" ref={fl} /></div></div>
+        <table className="dp-tbl">
           <thead><tr><th>calldata</th><th>type</th><th>value</th></tr></thead>
-          <tbody ref={body}>
-            {rowsData.map(([a, b, c]) => <tr key={a}><td>{a}</td><td>{b}</td><td>{c}</td></tr>)}
-          </tbody>
+          <tbody ref={body}>{rows.map(([a, b, c]) => <tr key={a}><td>{a}</td><td>{b}</td><td>{c}</td></tr>)}</tbody>
         </table>
       </div>
     </div>
@@ -347,16 +353,16 @@ function ChainDemo() {
     () => void (q(addr).textContent = checksum)
   );
   return (
-    <div className="demo" ref={root} aria-label="Chain checks demo">
-      <div className="tcard-hd"><span className="name"><i className="sq" />04 address + 06 gas</span><span className="muted">live</span></div>
-      <div className="demo-bd">
-        <div className="row"><span>address</span><div className="val hl" style={{ fontSize: 12.5 }}><span ref={addr} style={{ position: "relative", zIndex: 1 }} /><span className="fl" ref={fl} /></div></div>
+    <div className="dpanel" ref={root}>
+      <div className="dp-hd"><span className="nm"><i className="sq" />04 address + 06 gas</span><span>live</span></div>
+      <div className="dp-bd">
+        <div className="dp-row"><span>address</span><div className="dp-val hl" style={{ fontSize: 12.5 }}><span ref={addr} style={{ position: "relative", zIndex: 1 }} /><span className="fl" ref={fl} /></div></div>
         <div ref={rows} style={{ display: "grid", gap: 12 }}>
-          <div className="row"><span>checksum</span><div className="val"><span className="ok">✓ valid</span> <span className="muted">mixed case matches</span></div></div>
-          <div className="row"><span>type</span><div className="val">{code === "loading" ? "checking…" : code === "down" ? "RPC not responding" : code > 0 ? <><span className="ok">✓ contract</span> · {groupDigits(code)} bytes</> : "no code (wallet)"}</div></div>
-          <div className="row"><span>network</span><div className="val">{st.loaded ? <>block <Odometer value={st.blockNumber} /> · {(Number(st.gasPrice) / 1e9).toLocaleString("en-US", { maximumFractionDigits: 2 })} gwei</> : st.ok ? "loading…" : "RPC not responding"}</div></div>
+          <div className="dp-row"><span>checksum</span><div className="dp-val"><span className="ok">✓ valid</span> mixed case matches</div></div>
+          <div className="dp-row"><span>type</span><div className="dp-val">{code === "loading" ? "checking…" : code === "down" ? "RPC not responding" : code > 0 ? <><span className="ok">✓ contract</span> · {groupDigits(code)} bytes</> : "no code (wallet)"}</div></div>
+          <div className="dp-row"><span>network</span><div className="dp-val">{st.loaded ? <>block <Odometer value={st.blockNumber} /> · {gwei(st.gasPrice)} gwei</> : st.ok ? "loading…" : "RPC not responding"}</div></div>
         </div>
-        <div className="demo-note">{NETWORKS[APP_NET].label}, read live from the public RPC.</div>
+        <div className="dp-note">{NETWORKS[APP_NET].label}, read live from the public RPC.</div>
       </div>
     </div>
   );
@@ -372,11 +378,10 @@ function SignDemo() {
   const rows = useRef<HTMLDivElement>(null);
   const [demo, setDemo] = useState<{ sig: string; signer: string } | null>(null);
   const [rec, setRec] = useState<StatementView | null>(null);
-
   useEffect(() => {
     let stop = false;
     (async () => {
-      // A throwaway key made in this browser tab, only for the animation. It is never stored or sent.
+      // A throwaway key made in this tab only for the animation. Never stored or sent.
       const w = Wallet.createRandom();
       const sig = await w.signMessage(DEMO_MSG);
       if (!stop) setDemo({ sig, signer: w.address });
@@ -384,7 +389,6 @@ function SignDemo() {
     if (isDeployed) getStatement(0).then((s) => !stop && setRec(s)).catch(() => undefined);
     return () => { stop = true; };
   }, []);
-
   useDemo(
     root,
     (tl) => {
@@ -405,20 +409,16 @@ function SignDemo() {
     [demo]
   );
   return (
-    <div className="demo" ref={root} aria-label="Sign and verify demo">
-      <div className="tcard-hd"><span className="name"><i className="sq" />08 sign.verify</span><span className="muted">EIP-191</span></div>
-      <div className="demo-bd">
-        <div className="row"><span>message</span><div className="val"><span ref={msg} /></div></div>
-        <div className="row"><span>signature</span><div className="val hl" style={{ fontSize: 12.5 }}><span ref={sigEl} style={{ position: "relative", zIndex: 1 }} /><span className="fl" ref={fl} /></div></div>
+    <div className="dpanel" ref={root}>
+      <div className="dp-hd"><span className="nm"><i className="sq" />08 sign.verify</span><span>EIP-191</span></div>
+      <div className="dp-bd">
+        <div className="dp-row"><span>message</span><div className="dp-val"><span ref={msg} /></div></div>
+        <div className="dp-row"><span>signature</span><div className="dp-val hl" style={{ fontSize: 12.5 }}><span ref={sigEl} style={{ position: "relative", zIndex: 1 }} /><span className="fl" ref={fl} /></div></div>
         <div ref={rows} style={{ display: "grid", gap: 12 }}>
-          <div className="row"><span>recovered</span><div className="val"><span className="ok">✓</span> {demo ? short(demo.signer, 6, 4) : "…"}</div></div>
-          {rec ? (
-            <div className="row"><span>on chain</span><div className="val"><span className="ok">✓ recorded</span> · <Link to={`/verify/${rec.id}`} style={{ color: "var(--accent-ink)" }}>statement #{rec.id}</Link> · {NETWORKS[APP_NET].label}</div></div>
-          ) : (
-            <div className="row"><span>on chain</span><div className="val muted">recorded statements appear on the verify page</div></div>
-          )}
+          <div className="dp-row"><span>recovered</span><div className="dp-val"><span className="ok">✓</span> {demo ? short(demo.signer, 6, 4) : "…"}</div></div>
+          <div className="dp-row"><span>on chain</span><div className="dp-val">{rec ? <><span className="ok">✓ recorded</span> · <Link to={`/verify/${rec.id}`}>statement #{rec.id}</Link> · {NETWORKS[APP_NET].label}</> : "recorded statements appear on the verify page"}</div></div>
         </div>
-        <div className="demo-note">The demo key is made in your browser for this animation. Nothing is stored or sent. Statement #{rec ? rec.id : "0"} is a real record, signed by the project's test wallet.</div>
+        <div className="dp-note">The demo key is made in your browser for this animation, nothing is stored or sent. Statement #{rec ? rec.id : 0} is a real record from the project’s test wallet.</div>
       </div>
     </div>
   );
@@ -426,19 +426,19 @@ function SignDemo() {
 
 function Steps() {
   return (
-    <section className="band" aria-label="What it does">
-      <div className="band-in">
-        <Step n="01" label="Units" title="Converts every unit" link={{ to: "/tools/units", text: "Open Units" }} demo={<UnitsDemo />}>
-          Type in <b>wei, gwei or BOT</b> and the others follow, with custom decimals for tokens such as 6-decimal stablecoins. Every result has a copy button.
+    <section className="band" data-dark aria-label="What it does">
+      <div className="wrap steps">
+        <Step n="01" label="Units" title="Converts every unit" tone="a" link={{ to: "/tools/units", text: "Open Units" }} demo={<UnitsDemo />}>
+          Type in <b>wei, gwei or BOT</b> and the others follow, with custom decimals for tokens such as 6-decimal stablecoins.
         </Step>
-        <Step n="02" label="Hash and encode" title="Hashes and encodes" link={{ to: "/tools/abi", text: "Open ABI" }} flip demo={<HashDemo />}>
-          Get the <b>selector</b> from a signature, the topic of an event, and calldata for any call. Paste calldata back in to read the values. It all runs offline.
+        <Step n="02" label="Hash and encode" title="Hashes and encodes" tone="b" link={{ to: "/tools/abi", text: "Open ABI" }} flip demo={<HashDemo />}>
+          Get the <b>selector</b> from a signature, the topic of an event, and calldata for any call. Paste calldata back in to read the values.
         </Step>
-        <Step n="03" label="Chain checks" title="Checks the chain" link={{ to: "/tools/address", text: "Open Address" }} demo={<ChainDemo />}>
-          Fix a <b>checksum</b>, see if an address is a contract, read a balance, and watch live gas and block height from the public RPC. If the RPC is down, the offline tools keep working.
+        <Step n="03" label="Chain checks" title="Checks the chain" tone="c" link={{ to: "/tools/address", text: "Open Address" }} demo={<ChainDemo />}>
+          Fix a <b>checksum</b>, see if an address is a contract, read a balance, and watch live gas and block height from the public RPC.
         </Step>
-        <Step n="04" label="Sign and verify" title="Signs and verifies" link={{ to: "/tools/sign", text: "Open Sign" }} flip demo={<SignDemo />}>
-          Sign a message with your wallet, check any signature, and <b>record it on BOT Chain</b>. The contract recovers the signer itself, so a recorded statement cannot be faked.
+        <Step n="04" label="Sign and verify" title="Signs and verifies" tone="d" link={{ to: "/tools/sign", text: "Open Sign" }} flip demo={<SignDemo />}>
+          Sign a message with your wallet, check any signature, and <b>record it on BOT Chain</b>. The contract recovers the signer itself, so a record cannot be faked.
         </Step>
       </div>
     </section>
@@ -446,88 +446,142 @@ function Steps() {
 }
 
 // ======================================================================
-// 7. The 8 tools
+// 7. The 8 tools — list + detail, like the reference's agent library
 // ======================================================================
 
-const CATEGORY: Record<string, string> = { units: "Convert", hash: "Hash", abi: "Encode", address: "Inspect", time: "Convert", gas: "Live", network: "Live", sign: "Sign" };
+interface Detail { cat: string; desc: string; mLabel: string; mValue: string; tag: string; qy: string; ans: string; scope: string }
 
-function ToolsGrid() {
-  const root = useRef<HTMLElement>(null);
-  const grid = useRef<HTMLDivElement>(null);
+function useDetails(): Record<ToolSlug, Detail> {
   const st = useChainStatus(APP_NET);
-  useReveal(root, ".rv");
+  const total = useStatementsTotal();
+  const transfer = st.loaded ? `${trim0(formatUnits(21000n * st.gasPrice, 18))} ${NETWORKS[APP_NET].symbol}` : "…";
+  return {
+    units: { cat: "Convert", desc: "Move between wei, gwei and BOT without counting zeros.", mLabel: "Precision", mValue: "up to 77 decimals", tag: "result", qy: "1.5 BOT", ans: `${groupDigits(trim0(allUnits(toBase("bot", "1.5", 18), 18).gwei))} gwei`, scope: "Offline" },
+    hash: { cat: "Keccak", desc: "keccak256, function selectors and event topics from a signature.", mLabel: "Modes", mValue: "5", tag: "selector", qy: HERO_SIG, ans: selectorOf(HERO_SIG), scope: "Offline" },
+    abi: { cat: "Encode", desc: "Build calldata, read it back, and encode constructor arguments.", mLabel: "Modes", mValue: "encode · decode · args", tag: "calldata", qy: `transfer(0x…dEaD, 1000)`, ans: short(encodeCall(HERO_SIG, `["${DEAD}", "1000"]`), 14, 8), scope: "Offline" },
+    address: { cat: "Inspect", desc: "Fix a checksum, tell a contract from a wallet, read a balance.", mLabel: "Checks", mValue: "4 per address", tag: "checksum", qy: "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed", ans: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", scope: "Offline + live RPC" },
+    time: { cat: "Convert", desc: "Unix time, dates in your timezone and UTC, and blocks to time.", mLabel: "Block time", mValue: `${NETWORKS[APP_NET].blockTimeSeconds} s documented`, tag: "UTC", qy: "1700000000", ans: new Date(1700000000 * 1000).toISOString(), scope: "Offline + live RPC" },
+    gas: { cat: "Live", desc: "Live gas price every 3 seconds and the cost of any amount of gas.", mLabel: "Gas price", mValue: st.loaded ? `${gwei(st.gasPrice)} gwei` : st.ok ? "loading…" : "RPC not responding", tag: "cost", qy: "21,000 gas (a plain transfer, rough example)", ans: transfer, scope: "Live RPC" },
+    network: { cat: "Live", desc: "Both BOT Chain networks from one config, one click into MetaMask.", mLabel: "Chains", mValue: "677 · 968", tag: "head", qy: `latest block on ${NETWORKS[APP_NET].label}`, ans: st.loaded ? `#${groupDigits(st.blockNumber)}` : "…", scope: "Live RPC" },
+    sign: { cat: "Statements", desc: "Sign, verify, and record statements the contract checks itself.", mLabel: "Recorded", mValue: typeof total === "number" ? `${total} statement${total === 1 ? "" : "s"}` : "…", tag: "verify", qy: "signature over “Hello BOT Chain”", ans: "✓ signer recovered by the contract", scope: NETWORKS[APP_NET].label },
+  };
+}
+
+function ToolsLib() {
+  const root = useRef<HTMLElement>(null);
+  useReveal(root);
+  const details = useDetails();
+  const [idx, setIdx] = useState(0);
+  const [auto, setAuto] = useState(true);
+  const [run, setRun] = useState(0);
+  const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  useEffect(() => {
+    if (!auto || reduced) return;
+    const t = setTimeout(() => { setIdx((i) => (i + 1) % TOOLS.length); setRun((r) => r + 1); }, 5000);
+    return () => clearTimeout(t);
+  }, [idx, auto, reduced, run]);
+  const tool = TOOLS[idx];
+  const d = details[tool.slug];
+  const detail = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    const mm = gsap.matchMedia();
-    mm.add("(prefers-reduced-motion: no-preference)", () => {
-      const tween = gsap.from(q(grid).children, { opacity: 0, y: 18, rotationX: -14, transformOrigin: "50% 0%", duration: 0.8, ease: "ref", stagger: 0.08, scrollTrigger: { trigger: q(grid), start: "top 82%", once: true } });
-      return () => {
-        tween.scrollTrigger?.kill();
-        tween.kill();
-      };
-    });
-    return () => mm.revert();
-  }, []);
+    if (reduced || !detail.current) return;
+    const tw = gsap.fromTo(detail.current.children, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.45, ease: "ref", stagger: 0.05 });
+    return () => void tw.kill();
+  }, [idx, reduced]);
+
   return (
     <section className="sec" ref={root} id="tools" aria-label="The eight tools">
-      <div className="sec-hd">
-        <h2 className="rv">Eight tools, one page.</h2>
-        <p className="rv">Each one does a single chore well. Every tool has a shareable link and a copy-as-code button.</p>
-      </div>
-      <div className="grid8" ref={grid}>
-        {TOOLS.map((t, i) => (
-          <Link className="tc" key={t.slug} to={`/tools/${t.slug}`}>
-            <div className="tc-top"><span>{String(i + 1).padStart(2, "0")} · {CATEGORY[t.slug]}</span><Icon name={t.slug} size={20} /></div>
-            <div><h3>{t.name}</h3><p>{t.blurb}</p></div>
-            <div className="metric">
-              <i className={`sq ${t.slug === "gas" ? (st.ok ? "ok" : "warn") : "idle"}`} />
-              {t.slug === "gas" ? (st.loaded ? `${(Number(st.gasPrice) / 1e9).toLocaleString("en-US", { maximumFractionDigits: 2 })} gwei live` : "live") : t.metric}
+      <div className="wrap">
+        <div className="shead">
+          <h2 className="rv">Eight tools.<br />One fast page.</h2>
+          <div className="r rv">
+            <p>Each tool does one chore well, keeps its inputs in a shareable link, and shows the ethers.js line that does the same thing.</p>
+            <Link to="/tools" className="tlink">Put the toolbox to work →</Link>
+          </div>
+        </div>
+        <div className="lib rv">
+          <div className="lib-list" role="listbox" aria-label="Tools">
+            {TOOLS.map((t, i) => (
+              <button
+                key={t.slug}
+                role="option"
+                aria-selected={i === idx}
+                className="lib-item"
+                onClick={() => { setIdx(i); setAuto(false); }}
+                onMouseEnter={() => { setIdx(i); setAuto(false); }}
+              >
+                <span className="lib-ico"><Icon name={t.slug} size={16} /></span>
+                <b>{t.name}</b><small>{details[t.slug].cat}</small>
+                <span className="bar"><i key={`${i}-${run}-${idx}`} className={auto && !reduced && i === idx ? "run" : ""} /></span>
+              </button>
+            ))}
+          </div>
+          <div className="lib-stage" data-field><i className="fd" aria-hidden="true" />
+            <div className="lib-detail" ref={detail} aria-live="polite">
+              <div className="ld-hd"><span className="lib-ico" style={{ background: "var(--ink)", color: "var(--paper)" }}><Icon name={tool.slug} size={16} /></span><b>{tool.name}</b><small>{d.cat}</small><span className="cnt">{tool.metric}</span></div>
+              <div className="ld-bd">
+                <p>{d.desc}</p>
+                <div className="ld-metric"><span>{d.mLabel}</span><b>{d.mValue}</b></div>
+                <div className="ld-res">
+                  <div className="k"><span className="tag">{d.tag}</span>{String(idx + 1).padStart(2, "0")} {tool.slug}</div>
+                  <div className="q">{d.qy}</div>
+                  <div className="a">{d.ans}</div>
+                </div>
+              </div>
+              <div className="ld-ft"><span>Scope · {d.scope}</span><Link to={`/tools/${tool.slug}`}>Open {tool.name} →</Link></div>
             </div>
-          </Link>
-        ))}
+          </div>
+        </div>
       </div>
-      <div style={{ marginTop: 36 }} className="rv"><Link to="/tools" className="btn btn-ink">put the toolbox to work →</Link></div>
     </section>
   );
 }
 
 // ======================================================================
-// 8. From anywhere: shareable links, command palette, copy as code
+// 8. From anywhere — three art cards with captions
 // ======================================================================
 
 function Anywhere() {
   const root = useRef<HTMLElement>(null);
-  useReveal(root, ".rv");
-  const links = [
-    "/tools/hash?sig=transfer(address,uint256)",
-    "/tools/units?f=bot&v=1.5",
-    "/tools/gas?g=50000",
-    "/tools/time?ts=1700000000",
-  ];
+  useReveal(root);
   return (
-    <section className="sec" ref={root} style={{ paddingTop: 24 }} aria-label="Your toolbox, from anywhere">
-      <div className="sec-hd">
-        <h2 className="rv">Your toolbox, from anywhere.</h2>
-        <p className="rv">Every input lives in the link. Press ctrl K to jump to a tool. Copy the ethers.js line when you are ready to put it in code.</p>
-      </div>
-      <div className="any">
-        <div className="panel rv">
-          <h3>Shareable links</h3>
-          <p>Send a colleague the exact result you are looking at.</p>
-          <div className="links-list">
-            {links.map((l) => <Link key={l} to={l}><span>{l}</span><span>open →</span></Link>)}
+    <section className="sec" ref={root} style={{ paddingTop: 0 }} aria-label="Your toolbox, from anywhere">
+      <div className="wrap">
+        <div className="shead"><h2 className="rv">Your toolbox,<br />from anywhere.</h2><div /></div>
+        <div className="trio">
+          <div className="rv">
+            <div className="art a1" data-field><i className="fd" aria-hidden="true" />
+              <div className="mini">
+                <div className="row sel">/tools/hash?sig=transfer(address,uint256)<span className="r">copy</span></div>
+                <div className="row">/tools/units?f=bot&amp;v=1.5<span className="r">open</span></div>
+                <div className="row">/tools/gas?g=50000<span className="r">open</span></div>
+                <span className="pill"><i className="sq ok" style={{ borderRadius: "50%" }} />link copied</span>
+              </div>
+            </div>
+            <h3>Links that keep the answer.</h3>
+            <p>Every input lives in the URL. Send a colleague the exact result you are looking at.</p>
           </div>
-        </div>
-        <div className="panel rv">
-          <h3>Command bar and code</h3>
-          <div className="pal-mock" aria-hidden="true">
-            <div className="in"><Icon name="search" size={15} />hash<i className="cursor" style={{ height: 14, width: 7, marginLeft: 0 }} /></div>
-            <ul>
-              <li className="on"><Icon name="hash" size={16} />Hash<small>alt 2</small></li>
-              <li><Icon name="abi" size={16} />ABI<small>alt 3</small></li>
-              <li><Icon name="sign" size={16} />Sign<small>alt 8</small></li>
-            </ul>
+          <div className="rv">
+            <div className="art a2" data-field><i className="fd" aria-hidden="true" />
+              <div className="mini">
+                <div className="row"><Icon name="search" size={14} />hash<span className="r">ctrl k</span></div>
+                <div className="row sel"><Icon name="hash" size={14} />Hash<span className="r">alt 2</span></div>
+                <div className="row"><Icon name="abi" size={14} />ABI<span className="r">alt 3</span></div>
+                <div className="row"><Icon name="sign" size={14} />Sign<span className="r">alt 8</span></div>
+              </div>
+            </div>
+            <h3>One key to every tool.</h3>
+            <p>Press ctrl K anywhere, type two letters, and you are there. Alt 1 to 8 jump straight in.</p>
           </div>
-          <div className="codeblock"><span className="c">// copy as code, from the Hash tool</span>{"\n"}<span className="k">import</span> {"{ id } "}<span className="k">from</span> <span className="s">"ethers"</span>;{"\n\n"}id(<span className="s">"transfer(address,uint256)"</span>).slice(0, 10);{"\n"}<span className="c">// "0xa9059cbb"</span></div>
+          <div className="rv">
+            <div className="art a3" data-field><i className="fd" aria-hidden="true" />
+              <div className="mini">
+                <div className="code"><span className="c">// copy as code</span>{"\n"}<span className="k">import</span> {"{ id }"} <span className="k">from</span> <span className="s">"ethers"</span>;{"\n\n"}id(<span className="s">"transfer(address,uint256)"</span>){"\n"}  .slice(0, 10);{"\n"}<span className="c">// "0xa9059cbb"</span></div>
+              </div>
+            </div>
+            <h3>The code, not just the answer.</h3>
+            <p>Each tool shows the ethers.js v6 line that does the same thing, ready to paste into your project.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -535,50 +589,63 @@ function Anywhere() {
 }
 
 // ======================================================================
-// 9. Closing CTA + guides
+// 9. Dark tail: closing CTA, guides, footer
 // ======================================================================
 
-function Closing() {
-  const root = useRef<HTMLElement>(null);
-  useReveal(root, ".rv");
+const COVERS = [
+  "linear-gradient(135deg, #c96a3f, #f0b58c 55%, #6b3b2a)",
+  "linear-gradient(160deg, #3b4a3c, #9db08f 55%, #2b3329)",
+  "linear-gradient(140deg, #4a3150, #c08fb4 55%, #2e2234)",
+];
+const COVER_TEXT = ["0xa9059cbb", "10^18", "0x19…"];
+
+function Tail() {
+  const root = useRef<HTMLDivElement>(null);
+  useReveal(root);
   return (
-    <div className="closing">
-      <section className="sec" ref={root} id="guides" aria-label="Get started">
+    <div className="tail" data-dark data-dark-at="0.92" ref={root}>
+      <section className="closing" aria-label="Get started">
         <h2 className="rv">Put BOT Toolbox to work.</h2>
-        <p className="lead rv">Open it, press ctrl K, and the chore is done. No sign-up, nothing to install.</p>
-        <div className="rv"><Link to="/tools" className="btn btn-accent" style={{ padding: "15px 22px", fontSize: 15 }}>open the toolbox →</Link></div>
-        <div className="guides">
-          {GUIDES.map((g) => (
-            <Link key={g.slug} to={`/guides/${g.slug}`} className="gc rv">
-              <div><h3>{g.title}</h3><p style={{ marginTop: 8 }}>{g.lede}</p></div>
-              <span className="meta">read · {g.minutes} min →</span>
+        <p className="rv">Open it, press ctrl K, and the chore is done. No sign-up, nothing to install, nothing leaves your browser.</p>
+        <Link to="/tools" className="btn rv">Open the toolbox</Link>
+      </section>
+      <section className="guides" id="guides" aria-label="Guides">
+        <div className="guides-hd"><h2>From the guides</h2><Link to="/guides/function-selector" className="tlink">All guides →</Link></div>
+        <div className="guides-row">
+          {GUIDES.map((g, i) => (
+            <Link key={g.slug} to={`/guides/${g.slug}`} className="gcard rv">
+              <div className="cover" style={{ ["--cv" as string]: COVERS[i] }}><span>{COVER_TEXT[i]}</span></div>
+              <div className="meta"><span>Guide</span><span>{g.minutes} min read</span></div>
+              <h3>{g.title}</h3>
             </Link>
           ))}
         </div>
       </section>
+      <Footer />
     </div>
   );
 }
 
 export default function Home() {
+  useFieldPointer();
   useEffect(() => {
     document.title = "BOT Toolbox: dev tools for BOT Chain";
-    // refresh trigger positions once fonts and layout have settled
-    const t = setTimeout(() => ScrollTrigger.refresh(), 600);
+    const t = setTimeout(() => ScrollTrigger.refresh(), 700);
     return () => clearTimeout(t);
   }, []);
   return (
     <>
+      <IntroVeil />
       <SiteNav />
       <main>
         <Hero />
         <Trust />
+        <Statement />
         <Steps />
-        <ToolsGrid />
+        <ToolsLib />
         <Anywhere />
-        <Closing />
       </main>
-      <Footer />
+      <Tail />
     </>
   );
 }

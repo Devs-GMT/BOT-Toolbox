@@ -28,9 +28,9 @@ export function Icon({ name, size = 18 }: { name: keyof typeof P; size?: number 
 export function Mark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-      <path d="M20 3.5 34.3 11.75v16.5L20 36.5 5.7 28.25v-16.5Z" fill="#141414" />
+      <path className="mk-hex" d="M20 3.5 34.3 11.75v16.5L20 36.5 5.7 28.25v-16.5Z" fill="#141414" />
       <path d="M14 14.5l6 5.5-6 5.5" fill="none" stroke="#FF4F1F" strokeWidth="3.2" strokeLinecap="square" />
-      <path d="M22 26h5" stroke="#FAFAF7" strokeWidth="3.2" />
+      <path className="mk-us" d="M22 26h5" stroke="#FAFAF7" strokeWidth="3.2" />
     </svg>
   );
 }

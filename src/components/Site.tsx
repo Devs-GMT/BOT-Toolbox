@@ -8,19 +8,51 @@ import { Mark } from "./icons";
 import { CopyButton, Odometer } from "./ui";
 import WalletButton from "./WalletButton";
 
+/** Two floating glass tiles, as on the reference. They switch to a dark glass over any element marked data-dark. */
 export function SiteNav() {
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    // One scroll check drives both the nav tiles (probe at the top) and the page colour (probe lower down,
+    // per element via data-dark-at), so the whole page fades between paper and dark like the reference.
+    const check = () => {
+      const vh = window.innerHeight;
+      const els = [...document.querySelectorAll<HTMLElement>("[data-dark]")];
+      // data-nav-dark: dark only behind the nav tiles, the page itself stays light (verify, guides, legal footer)
+      const navEls = [...els, ...document.querySelectorAll<HTMLElement>("[data-nav-dark]")];
+      const page = els.some((el) => {
+        const t = parseFloat(el.dataset.darkAt ?? "0.62");
+        const r = el.getBoundingClientRect();
+        return r.top <= vh * t && r.bottom >= vh * t;
+      });
+      const behindNav = navEls.some((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top <= 40 && r.bottom >= 40;
+      });
+      setDark(page || behindNav);
+      document.body.classList.toggle("dark", page);
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      window.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+      document.body.classList.remove("dark");
+    };
+  }, []);
   return (
-    <header className="snav">
-      <Link to="/" className="brand" aria-label="BOT Toolbox home">
-        <Mark />
+    <header className={`topnav${dark ? " on-dark" : ""}`}>
+      <Link to="/" className="tile brandtile" aria-label="BOT Toolbox home">
+        <Mark size={24} />
         bot/toolbox
       </Link>
-      <nav className="snav-links" aria-label="Main">
-        <Link to="/tools/units">tools</Link>
-        <Link to="/verify">statements</Link>
-        <a href={LINKS.github} target="_blank" rel="noopener noreferrer">docs</a>
-        <span className="snav-wallet"><WalletButton compact /></span>
-        <Link to="/tools" className="btn btn-ink btn-sm">open toolbox →</Link>
+      <nav className="tile links" aria-label="Main">
+        <Link to="/tools/units" className="hide-s">Tools</Link>
+        <Link to="/verify" className="hide-s">Statements</Link>
+        <a href={LINKS.github} target="_blank" rel="noopener noreferrer" className="hide-s">Docs</a>
+        <span className="vr" />
+        <span className="wallet-s"><WalletButton compact /></span>
+        <Link to="/tools" className="btn btn-ink" style={{ marginLeft: 6 }}>Open the toolbox</Link>
       </nav>
     </header>
   );
@@ -54,6 +86,7 @@ function Line({ ok, children }: { ok: boolean | null; children: React.ReactNode 
   );
 }
 
+/** Dark footer with dashed column rules; the right column is the live BOT Chain system check. */
 export function Footer() {
   const main = useChainStatus("mainnet");
   const test = useChainStatus("testnet");
@@ -65,68 +98,64 @@ export function Footer() {
   const rpcLine = (s: typeof main) => (s.loaded ? (s.ok ? "✓ OK" : "not responding") : s.ok ? "checking…" : "not responding");
 
   return (
-    <footer className="foot" aria-label="Site footer">
-      <div className="foot-top">
-        <div className="foot-brand">
-          <Link to="/" className="brand"><Mark />bot/toolbox</Link>
-          <p>Built for BOT Chain builders.</p>
+    <footer aria-label="Site footer">
+      <div className="foot">
+        <div>
+          <h3>Tools</h3>
+          {TOOLS.map((t) => <Link className="fl" key={t.slug} to={`/tools/${t.slug}`}>{t.name}</Link>)}
         </div>
-        <div className="foot-check">
-          <h2 className="mono" style={{ color: allOk ? "var(--ink)" : "var(--warn)" }}>{allOk ? "All tools normal" : `RPC ${down} not responding`}</h2>
-          <div className="syscheck" role="status" aria-live="polite">
+        <div>
+          <h3>Resources</h3>
+          <a className="fl" href={LINKS.github} target="_blank" rel="noopener noreferrer">Docs</a>
+          <Link className="fl" to="/guides/function-selector">Guides</Link>
+          <a className="fl" href={LINKS.docs} target="_blank" rel="noopener noreferrer">BOT Chain docs</a>
+          <a className="fl" href={NETWORKS.testnet.faucet} target="_blank" rel="noopener noreferrer">Faucet</a>
+        </div>
+        <div>
+          <h3>Project</h3>
+          {LINKS.x && <a className="fl" href={LINKS.x} target="_blank" rel="noopener noreferrer">X</a>}
+          <Link className="fl" to="/privacy">Privacy</Link>
+          <Link className="fl" to="/terms">Terms</Link>
+        </div>
+        <div className="fcheck">
+          <div className="fpills">
+            <span className={`fpill solid${allOk ? "" : " warn"}`} role="status"><i />{allOk ? "All tools normal" : `RPC ${down} not responding`}</span>
+            <span className="fpill line">Built for BOT Chain builders</span>
+          </div>
+          <div className="syscheck" aria-live="polite">
             <Line ok={main.loaded ? main.ok : null}>RPC 677 {rpcLine(main)}</Line>
             <Line ok={test.loaded ? test.ok : null}>RPC 968 {rpcLine(test)}</Line>
             <Line ok={app.loaded ? app.ok : null}>Latest block {app.loaded ? <Odometer value={app.blockNumber} /> : "…"}</Line>
             <Line ok={app.loaded ? app.ok : null}>Gas {app.loaded ? `${(Number(app.gasPrice) / 1e9).toLocaleString("en-US", { maximumFractionDigits: 2 })} gwei` : "…"}</Line>
           </div>
-          <div className="foot-chain">
+          <div className="fchain">
             <a href={LINKS.botchain} target="_blank" rel="noopener noreferrer" aria-label="BOT Chain, opens botchain.ai" className="bclogo">
-              <img src="/brand/botchain-white.svg" alt="BOT Chain" height={22} />
+              <img src="/brand/botchain-white.svg" alt="BOT Chain" height={20} />
             </a>
             {isDeployed ? (
               <>
-                <span className="mono foot-addr">
-                  Statements · {short(statementsAddress, 6, 4)} <CopyButton text={statementsAddress} />
-                </span>
-                <a className="btn btn-accent btn-sm" href={`${net.explorer}/address/${statementsAddress}`} target="_blank" rel="noopener noreferrer">
-                  View on explorer ↗
-                </a>
-                <span className="mono foot-count" title={`Statements recorded on ${net.label}`}>
+                <span className="foot-addr">Statements · {short(statementsAddress, 6, 4)} <CopyButton text={statementsAddress} /></span>
+                <a className="btn btn-accent btn-sm" href={`${net.explorer}/address/${statementsAddress}`} target="_blank" rel="noopener noreferrer">View on explorer ↗</a>
+                <span className="foot-count" title={`Statements recorded on ${net.label}`}>
                   STATEMENTS {typeof total === "number" ? total.toLocaleString("en-US") : total === "down" ? "–" : "…"}
                 </span>
               </>
             ) : (
-              <span className="mono foot-addr muted">Statements contract not deployed yet</span>
+              <span className="foot-addr">Statements contract not deployed yet</span>
             )}
           </div>
-          {APP_NET === "testnet" && isDeployed && <div className="hint" style={{ marginTop: 8 }}>Showing the {net.label} contract. Mainnet goes live after the mainnet deploy.</div>}
+          {APP_NET === "testnet" && isDeployed && <p className="fnote">Showing the {net.label} contract. Mainnet goes live after the mainnet deploy.</p>}
         </div>
       </div>
-      <div className="foot-cols">
-        <div>
-          <h3>Tools</h3>
-          {TOOLS.map((t) => <Link key={t.slug} to={`/tools/${t.slug}`}>{t.name}</Link>)}
-        </div>
-        <div>
-          <h3>Resources</h3>
-          <a href={LINKS.github} target="_blank" rel="noopener noreferrer">Docs</a>
-          <Link to="/guides/function-selector">Guides</Link>
-          <a href={LINKS.docs} target="_blank" rel="noopener noreferrer">BOT Chain docs</a>
-          <a href={NETWORKS.testnet.faucet} target="_blank" rel="noopener noreferrer">Faucet</a>
-        </div>
-        <div>
-          <h3>Project</h3>
-          <a href={LINKS.github} target="_blank" rel="noopener noreferrer">GitHub</a>
-          {LINKS.x && <a href={LINKS.x} target="_blank" rel="noopener noreferrer">X</a>}
-          <Link to="/privacy">Privacy</Link>
-          <Link to="/terms">Terms</Link>
-        </div>
+      <div className="fbottom">
+        <span>© 2026 BOT Toolbox · runs in your browser · never paste your private key anywhere</span>
+        <Mark size={22} />
       </div>
-      <p className="foot-bottom mono">© 2026 BOT Toolbox · runs in your browser · never paste your private key anywhere</p>
     </footer>
   );
 }
 
+/** Light pages (verify, guides, legal) with the floating nav and the dark footer. */
 export function SiteShell() {
   return (
     <>
@@ -134,7 +163,9 @@ export function SiteShell() {
       <main style={{ minHeight: "60vh" }}>
         <Outlet />
       </main>
-      <Footer />
+      <div className="tail solid" data-nav-dark>
+        <Footer />
+      </div>
     </>
   );
 }
