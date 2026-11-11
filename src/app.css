@@ -206,3 +206,52 @@
 /* copy buttons on dark surfaces (footer, code drawer) */
 .foot .copy, .drawer pre .copy { background: transparent; border-color: rgba(255, 255, 255, 0.28); color: #ffb199; }
 .foot .copy:hover, .drawer pre .copy:hover { background: #ffb199; color: #0d1b18; border-color: #ffb199; }
+
+
+/* ---------- docs page ---------- */
+.docs { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 64px; align-items: start; }
+.docs-toc { position: sticky; top: 100px; display: grid; gap: 2px; font: 500 14px/1.3 var(--sans); }
+.docs-toc a { text-decoration: none; color: var(--muted); padding: 7px 10px; border-radius: 8px; transition: background-color 0.2s, color 0.2s; }
+.docs-toc a:hover { background: rgba(12, 23, 21, 0.05); color: var(--ink); }
+.docs-toc .lbl { padding: 0 10px 8px; }
+.docs-body { display: grid; gap: 56px; max-width: 780px; min-width: 0; }
+.docs-body header { display: grid; gap: 14px; }
+.docs-lede { font: 400 19px/1.55 var(--sans); color: var(--muted); max-width: 620px; }
+.docs-body section { display: grid; gap: 16px; scroll-margin-top: 100px; }
+.docs-body h2 { font: 400 clamp(26px, 2.6vw, 34px)/1.15 var(--serif); letter-spacing: -0.02em; }
+.docs-body h3 { font: 500 17px/1.3 var(--sans); margin-top: 8px; }
+.docs-body p, .docs-list, .docs-steps { font: 400 16.5px/1.7 var(--sans); color: var(--ink); }
+.docs-body p a, .docs-body li a, .docs-body td a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.docs-body code { font: 500 13.5px/1 var(--mono); background: rgba(12, 23, 21, 0.06); border-radius: 5px; padding: 2px 6px; }
+.docs-body kbd { font: 500 12px/1 var(--mono); border: 1px solid rgba(12, 23, 21, 0.18); border-bottom-width: 2px; border-radius: 5px; padding: 3px 6px; background: #fff; }
+.docs-list, .docs-steps { margin: 0; padding-left: 22px; display: grid; gap: 10px; }
+.docs-steps { counter-reset: s; list-style: none; padding-left: 0; }
+.docs-steps li { counter-increment: s; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; }
+.docs-steps li::before { content: counter(s); width: 28px; height: 28px; border-radius: 8px; background: var(--ink); color: var(--paper); display: grid; place-items: center; font: 500 13px/1 var(--mono); margin-top: 2px; }
+.docs-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.docs-tool { background: #fff; border-radius: 12px; box-shadow: var(--card-shadow); padding: 18px; display: grid; gap: 10px; align-content: start; }
+.docs-tool p { font-size: 15px; line-height: 1.6; color: var(--muted); }
+.dt-hd { display: flex; align-items: center; gap: 10px; }
+.dt-hd span { font: 500 12px/1 var(--mono); color: #a3b2ae; }
+.dt-hd b { font: 500 19px/1.2 var(--serif); letter-spacing: -0.01em; }
+.dt-hd .badge { margin-left: auto; font-size: 11px; }
+.dt-try { font: 500 14px/1 var(--sans); text-decoration: none; color: var(--ink); }
+.dt-try:hover { text-decoration: underline; }
+.docs-body .tbl td, .docs-body .tbl th { font-size: 13.5px; vertical-align: top; }
+@media (max-width: 1000px) {
+  .docs { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .docs-toc { position: static; grid-auto-flow: column; overflow-x: auto; padding-bottom: 6px; }
+  .docs-toc a { white-space: nowrap; background: #fff; box-shadow: var(--ring-a); }
+  .docs-toc .lbl { display: none; }
+  .docs-tools { grid-template-columns: minmax(0, 1fr); }
+}
+.docs-body .tbl td:first-child { white-space: nowrap; }
+.docs-body .tbl { table-layout: auto; }
+@media (max-width: 760px) { .docs-body .tbl { display: block; overflow-x: auto; } }
+
+/* docs: steps content is one cell; the table of contents marks the current section like the app sidebar */
+.docs-steps li > div { min-width: 0; }
+.docs-toc a { position: relative; }
+.docs-toc a[aria-current="true"] { background: #fff; color: var(--ink); box-shadow: var(--ring-a), 0 8px 18px -12px rgba(12, 60, 50, 0.35); }
+.docs-toc a[aria-current="true"]::before { content: ""; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
+@media (max-width: 1000px) { .docs-toc a[aria-current="true"] { background: var(--ink); color: var(--paper); } .docs-toc a[aria-current="true"]::before { display: none; } }

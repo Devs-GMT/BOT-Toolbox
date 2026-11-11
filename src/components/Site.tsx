@@ -49,7 +49,7 @@ export function SiteNav() {
       <nav className="tile links" aria-label="Main">
         <Link to="/tools/units" className="hide-s">Tools</Link>
         <Link to="/verify" className="hide-s">Statements</Link>
-        <a href={LINKS.github} target="_blank" rel="noopener noreferrer" className="hide-s">Docs</a>
+        <Link to="/docs" className="hide-s">Docs</Link>
         <span className="vr" />
         <span className="wallet-s"><WalletButton compact /></span>
         <Link to="/tools" className="btn btn-ink" style={{ marginLeft: 6 }}>Open the toolbox</Link>
@@ -106,7 +106,7 @@ export function Footer() {
         </div>
         <div>
           <h3>Resources</h3>
-          <a className="fl" href={LINKS.github} target="_blank" rel="noopener noreferrer">Docs</a>
+          <Link className="fl" to="/docs">Docs</Link>
           <Link className="fl" to="/guides/function-selector">Guides</Link>
           <a className="fl" href={LINKS.docs} target="_blank" rel="noopener noreferrer">BOT Chain docs</a>
           <a className="fl" href={NETWORKS.testnet.faucet} target="_blank" rel="noopener noreferrer">Faucet</a>

@@ -26,6 +26,7 @@ export default function CommandPalette() {
       ...TOOLS.map((t, i) => ({ id: t.slug, label: t.name, hint: `alt ${i + 1}`, keys: `${t.slug} ${t.blurb}`, icon: t.slug, run: () => nav(`/tools/${t.slug}`) })),
       { id: "verify", label: "Verify a statement", hint: "/verify", keys: "statements verify record signed", run: () => nav("/verify") },
       { id: "home", label: "Home", hint: "/", keys: "home website", run: () => nav("/") },
+      { id: "toolbox-docs", label: "Docs", hint: "/docs", keys: "documentation help shortcuts links", run: () => nav("/docs") },
       { id: "docs", label: "BOT Chain docs", hint: "opens a new tab", keys: "docs documentation botchain", run: () => window.open(LINKS.docs, "_blank", "noopener") },
     ],
     [nav]

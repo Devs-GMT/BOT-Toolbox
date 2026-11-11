@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppLayout, ToolPage } from "./components/AppLayout";
 import CommandPalette from "./components/CommandPalette";
+import Docs from "./pages/Docs";
 import Home from "./pages/Home";
 import { Guide } from "./pages/Guides";
 import { Legal } from "./pages/Legal";
@@ -31,6 +32,7 @@ export default function App() {
         <Route element={<SiteShell />}>
           <Route path="/verify" element={<Verify />} />
           <Route path="/verify/:id" element={<Verify />} />
+          <Route path="/docs" element={<Docs />} />
           <Route path="/guides/:slug" element={<Guide />} />
           <Route path="/privacy" element={<Legal kind="privacy" />} />
           <Route path="/terms" element={<Legal kind="terms" />} />
