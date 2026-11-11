@@ -211,3 +211,23 @@ A deeper study (measured, not eyeballed) showed where the first build drifted. T
 | Three cards | 352 x 400 art cards with dots, a small UI card inside, title and text below | shareable links, ctrl K, copy as code |
 | Tail | closing CTA, blog row and footer on dark, dashed hairlines between footer columns, status pills | closing CTA, guides row, footer with dashed columns, status pills and the live system check |
 | Buttons | pills, sans 15px | pills, Inter |
+
+## 10. Colour identity: diverging from the reference
+
+The first two passes followed the reference's palette too closely (warm paper, warm near-black, brown and peach gradients). BOT Toolbox now has its own colour identity. Structure, spacing and motion still follow the reference; colour does not.
+
+| Role | Reference | BOT Toolbox |
+| --- | --- | --- |
+| Light surface | `#F5F6F1` warm paper | `#F5F9F7` cool mint paper |
+| Dark surface | `#1A1614` warm near-black | `#0B1614` deep teal-black (`--dark`, `--dark-grain` `#0E1C19`) |
+| Ink | `#1A1614` | `#0D1B18` |
+| Muted text | warm grey | `#60716E` on light, `#8DA09C` on dark |
+| Window gradients (steps) | brown to peach (`#463F39`, `#AD8068`) | jade `#0F2F2B → #2FA08A`, steel blue `#0F2630 → #2F7FA3`, mint `#12302B → #4CC2A6`, ocean `#12293A → #3A86B5` |
+| Tool library stage | sunset peach | mint `#EAF5F2 → #A8DDD0 → #46B49C` |
+| Art cards | peach, grey, mauve | vermilion `#FFBFA9 → #FF6A45`, jade `#DFF5EF → #43B39D`, indigo `#D3E2FF → #3D6FC4` |
+| Intro veil | brown mass | deep teal rising to mint |
+| Hero glow | brown + orange + tan | deep teal, coral `#FF6040`, jade |
+| Accent | none (ink buttons) | vermilion `#FF4F1F` for the result highlight, the typing cursor, selected-item markers and the one primary action |
+| Semantic | n/a | success `#1F9D55`, warning `#D97706`, error `#DC2626` (unchanged) |
+
+Teal also echoes the BOT Chain wordmark used in the footer, so the page and the chain logo read as one family. Fonts already differ from the reference (Newsreader and Inter instead of Signifier and Geist), and the logo, copy and the real-app window are our own.

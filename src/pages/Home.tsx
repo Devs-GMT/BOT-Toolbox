@@ -593,9 +593,9 @@ function Anywhere() {
 // ======================================================================
 
 const COVERS = [
-  "linear-gradient(135deg, #c96a3f, #f0b58c 55%, #6b3b2a)",
-  "linear-gradient(160deg, #3b4a3c, #9db08f 55%, #2b3329)",
-  "linear-gradient(140deg, #4a3150, #c08fb4 55%, #2e2234)",
+  "linear-gradient(135deg, #ff6a45, #ffb8a3 55%, #0f2f2b)",
+  "linear-gradient(160deg, #0f4d44, #58c2ac 55%, #0a2f2a)",
+  "linear-gradient(140deg, #1d3f7a, #8fb0ee 55%, #0c1f3d)",
 ];
 const COVER_TEXT = ["0xa9059cbb", "10^18", "0x19…"];
 
