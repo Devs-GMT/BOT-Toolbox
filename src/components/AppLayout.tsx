@@ -1,9 +1,12 @@
-import { useEffect } from "react";
-import { Link, NavLink, Outlet, useParams } from "react-router-dom";
+import { gsap } from "gsap";
+import { useEffect, useLayoutEffect, useRef } from "react";
+import { Link, Outlet, useParams } from "react-router-dom";
 import { APP_NET, NETWORKS, TOOLS } from "../lib/config";
 import { useChainStatus } from "../lib/rpc";
 import { Icon, Mark } from "./icons";
 import { openPalette } from "./CommandPalette";
+import PageHead from "./PageHead";
+import Sidebar from "./Sidebar";
 import { Odometer } from "./ui";
 import WalletButton from "./WalletButton";
 import Abi from "../tools/Abi";
@@ -24,24 +27,7 @@ export function AppLayout() {
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
   return (
     <div className="app">
-      <aside className="side" aria-label="Tools">
-        <Link to="/" className="brand" aria-label="BOT Toolbox home">
-          <Mark />
-          <span>bot/toolbox</span>
-        </Link>
-        {TOOLS.map((t, i) => (
-          <NavLink key={t.slug} to={`/tools/${t.slug}`} className="nav" title={`${t.name} (alt ${i + 1})`}>
-            <Icon name={t.slug} />
-            <span>{t.name}</span>
-            <span className="n">{i + 1}</span>
-          </NavLink>
-        ))}
-        <div className="grow" />
-        <Link to="/verify" className="nav" title="Verify a statement">
-          <Icon name="check" />
-          <span>Verify</span>
-        </Link>
-      </aside>
+      <Sidebar />
       <header className="top">
         <Link to="/" className="brand brand-m" aria-label="BOT Toolbox home">
           <Mark size={24} />
@@ -60,6 +46,7 @@ export function AppLayout() {
         <WalletButton />
       </header>
       <main className="main">
+        <div className="bgfield" aria-hidden="true" />
         <div className="main-in">
           <Outlet />
         </div>
@@ -71,18 +58,23 @@ export function AppLayout() {
 export function ToolPage() {
   const { tool } = useParams();
   const meta = TOOLS.find((t) => t.slug === tool);
+  const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
     document.title = meta ? `${meta.name} · BOT Toolbox` : "BOT Toolbox";
+  }, [meta]);
+  // the header and cards rise in one after another whenever the tool changes
+  useLayoutEffect(() => {
+    if (!meta || !box.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const kids = [...box.current.querySelectorAll<HTMLElement>(".ph > *, .tcard")];
+    const tw = gsap.fromTo(kids, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out", stagger: 0.07, clearProps: "opacity,transform" });
+    return () => void tw.kill();
   }, [meta]);
   if (!meta) return <NotFound inApp />;
   const C = COMPONENTS[meta.slug];
   return (
-    <>
-      <div className="tool-title">
-        <h1>{meta.name}</h1>
-        <p>{meta.blurb}.</p>
-      </div>
+    <div ref={box} key={meta.slug} className="tp">
+      <PageHead slug={meta.slug} />
       <C />
-    </>
+    </div>
   );
 }

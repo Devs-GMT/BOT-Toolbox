@@ -57,7 +57,7 @@ export default function Time() {
   return (
     <ToolFrame slug="time" mode="convert" status={fromUnix.error || dateParsed.error ? "err" : "ok"} code={code}>
       <div className="row2" style={{ alignItems: "end" }}>
-        <Field id="t-ts" label="unix timestamp" value={q.ts} inputMode="numeric" placeholder={String(Math.floor(now / 1000))} error={fromUnix.error} onChange={(ts) => set({ ts })} />
+        <Field id="t-ts" label="unix timestamp" value={q.ts} inputMode="numeric" placeholder={`e.g. ${Math.floor(now / 1000)}`} error={fromUnix.error} onChange={(ts) => set({ ts })} />
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <Seg label="unit" value={unit} options={[{ id: "s", label: "seconds" }, { id: "ms", label: "ms" }]} onChange={(u) => set({ u })} />
           <button type="button" className="btn btn-line btn-sm" onClick={() => set({ ts: String(unit === "s" ? Math.floor(Date.now() / 1000) : Date.now()) })}>
@@ -75,7 +75,7 @@ export default function Time() {
         id="t-date"
         label="date to unix"
         value={q.d}
-        placeholder="2026-11-10T22:20:00Z"
+        placeholder="e.g. 2026-11-10T22:20:00Z"
         hint="Without a Z or offset the date is read in your timezone."
         error={dateParsed.error}
         onChange={(d) => set({ d })}
@@ -99,7 +99,7 @@ export default function Time() {
         </dd>
       </dl>
       <div className="row2">
-        <Field id="t-blk" label="block number" value={q.b} inputMode="numeric" placeholder={head.loaded ? String(head.blockNumber) : "…"} error={blk.error} onChange={(b) => set({ b })} />
+        <Field id="t-blk" label="block number" value={q.b} inputMode="numeric" placeholder={`e.g. ${head.loaded ? head.blockNumber : "30000000"}`} error={blk.error} onChange={(b) => set({ b })} />
         <Result label="approx. time of that block" value={blk.value === null ? null : safe(() => `${new Date(blk.value! * 1000).toISOString()} (${relativeTime(blk.value! * 1000, now)})`)} />
       </div>
       <Result label="approx. block at the timestamp above" value={blockFromTime === null ? null : `#${groupDigits(blockFromTime)}`} empty="Enter a unix timestamp above" />

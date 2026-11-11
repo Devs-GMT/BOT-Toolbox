@@ -47,7 +47,7 @@ export default function Address() {
         id="ad-in"
         label="address"
         value={q.a}
-        placeholder="0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+        placeholder="e.g. 0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
         error={q.a && !info.valid ? info.reason : null}
         onChange={(a) => set({ a })}
       />

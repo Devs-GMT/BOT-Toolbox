@@ -286,11 +286,8 @@ body.dark { --paper: #171513; --paper-2: #1f1c1a; --ink: #fafbf7; --muted: #9a95
 .wdots { display: flex; gap: 7px; }
 .wdots i { width: 11px; height: 11px; border-radius: 50%; background: #d3d1c8; display: block; }
 .wurl { flex: 1; max-width: 560px; margin: 0 auto; background: #fff; border-radius: 6px; box-shadow: 0 0 0 1px rgba(20, 20, 20, 0.08); padding: 6px 12px; font: 400 12px/1.2 var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.appwin .app { min-height: 0; height: 520px; grid-template-columns: 200px minmax(0, 1fr); }
 .appwin .side { position: static; height: auto; }
 .appwin .top { position: static; }
-.appwin .main { padding: 24px 28px 0; overflow: hidden; }
-.appwin .main-in { max-width: 760px; gap: 16px; }
 .appwin .nav, .appwin .brand { cursor: default; }
 .appwin .nav[aria-current="page"] { background: var(--ink); color: var(--paper); }
 .appwin .input { min-height: 44px; }
@@ -325,10 +322,8 @@ body.dark { --paper: #171513; --paper-2: #1f1c1a; --ink: #fafbf7; --muted: #9a95
   .float { display: none; }
 }
 @media (max-width: 760px) {
-  .appwin .app { grid-template-columns: minmax(0, 1fr); height: 430px; }
   .appwin .side { display: none; }
   .appwin .top .pill { display: none; }
-  .appwin .main { padding: 16px 14px 0; }
   .wurl { font-size: 10.5px; }
   .glow .g1, .glow .g3 { display: none; }
   .glow .g2 { width: 420px; right: -80px; }
@@ -351,14 +346,8 @@ body.dark { --paper: #171513; --paper-2: #1f1c1a; --ink: #fafbf7; --muted: #9a95
 .band::before, .tail::before { display: none; }
 
 /* ---------- hero tour ---------- */
-.appwin .app { height: 580px; }
-.appwin .tool-title { margin-bottom: 2px; }
-.appwin .tool-title h1 { font-size: 30px; }
-.appwin .main-in { gap: 12px; }
-.appwin .tcard-bd { gap: 14px; padding: 16px 16px 18px; }
 .appwin .input.on { border-color: rgba(20, 20, 20, 0.55); box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent); }
 .appwin .input { overflow-wrap: anywhere; min-height: 44px; }
-.appwin .drawer pre { display: none; }
 .appwin .btn { cursor: default; }
 .appwin .tbl td, .appwin .tbl th { padding: 7px 10px; }
 .side .grow { flex: 1; }
@@ -369,10 +358,7 @@ body.dark { --paper: #171513; --paper-2: #1f1c1a; --ink: #fafbf7; --muted: #9a95
 .tour-tab .tbar { display: block; height: 3px; border-radius: 3px; background: rgba(20, 20, 20, 0.08); overflow: hidden; margin: 0 -14px 0; }
 .tour-tab .tbar b { display: block; height: 100%; background: var(--accent); transform-origin: 0 50%; transform: scaleX(0); }
 @media (max-width: 760px) {
-  .appwin .app { height: 520px; }
   .tour-tab { min-width: 0; flex: 1 1 calc(25% - 8px); padding: 10px 10px 0; font-size: 12.5px; }
 }
 .appwin .side a.nav, .appwin .side a.nav span { transition: background-color 0.35s var(--ease), color 0.35s var(--ease); }
 .appwin .res-box .val, .appwin .input span { transition: none; }
-.appwin .app { height: 604px; }
-@media (max-width: 760px) { .appwin .app { height: 560px; } }

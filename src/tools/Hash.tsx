@@ -12,7 +12,7 @@ const MODES: { id: Mode; label: string }[] = [
 ];
 
 export default function Hash() {
-  const [q, set] = useQueryState({ m: "selector", sig: "transfer(address,uint256)", text: "", hex: "" });
+  const [q, set] = useQueryState({ m: "selector", sig: "", text: "", hex: "" });
   const mode = (MODES.find((m) => m.id === q.m)?.id ?? "selector") as Mode;
 
   const sel = attempt(() => (mode === "selector" && q.sig.trim() ? { sel: selectorOf(q.sig), norm: normaliseSignature(q.sig) } : null));
@@ -20,24 +20,26 @@ export default function Hash() {
     mode === "topic" && q.sig.trim() ? { topic: topicOf(q.sig), norm: EventFragment.from(q.sig.trim()).format("sighash") } : null
   );
   const nor = attempt(() => (mode === "normalise" && q.sig.trim() ? normaliseSignature(q.sig) : null));
-  const txt = mode === "text" ? keccakText(q.text) : null;
+  const txt = mode === "text" && q.text ? keccakText(q.text) : null;
   const hex = attempt(() => (mode === "hex" && q.hex.trim() ? keccakHex(q.hex) : null));
 
   const err = (mode === "selector" && sel.error) || (mode === "topic" && top.error) || (mode === "normalise" && nor.error) || (mode === "hex" && hex.error) || null;
-  const sigPlaceholder = mode === "topic" ? "Transfer(address,address,uint256)" : "transfer(address,uint256)";
+  const sigPlaceholder = mode === "topic" ? "e.g. Transfer(address,address,uint256)" : "e.g. transfer(address,uint256)";
+  // the code drawer shows a worked example until something is typed
+  const sigC = q.sig || (mode === "topic" ? "Transfer(address,address,uint256)" : "transfer(address,uint256)");
 
   const code =
     mode === "selector"
-      ? `import { id } from "ethers";\n\nid("${normaliseOr(q.sig)}").slice(0, 10); // "${sel.value?.sel ?? ""}"`
+      ? `import { id } from "ethers";\n\nid("${normaliseOr(sigC)}").slice(0, 10); // "${sel.value?.sel ?? selectorOf(sigC)}"`
       : mode === "topic"
-        ? `import { EventFragment } from "ethers";\n\nEventFragment.from("${q.sig}").topicHash; // "${top.value?.topic ?? ""}"`
+        ? `import { EventFragment } from "ethers";\n\nEventFragment.from("${sigC}").topicHash; // "${top.value?.topic ?? ""}"`
         : mode === "normalise"
-          ? `import { Fragment } from "ethers";\n\nFragment.from("${q.sig}").format("sighash"); // "${nor.value ?? ""}"`
+          ? `import { Fragment } from "ethers";\n\nFragment.from("${sigC}").format("sighash"); // "${nor.value ?? ""}"`
           : mode === "text"
             ? `import { id } from "ethers";\n\nid(${JSON.stringify(q.text)}); // "${txt ?? ""}"`
             : `import { keccak256 } from "ethers";\n\nkeccak256("${q.hex}"); // "${hex.value ?? ""}"`;
 
-  const hasInput = mode === "text" ? true : mode === "hex" ? q.hex.trim() !== "" : q.sig.trim() !== "";
+  const hasInput = mode === "text" ? q.text !== "" : mode === "hex" ? q.hex.trim() !== "" : q.sig.trim() !== "";
 
   return (
     <ToolFrame slug="hash" mode={mode} status={err ? "err" : hasInput ? "ok" : "idle"} code={code}>
@@ -54,8 +56,8 @@ export default function Hash() {
           onChange={(sig) => set({ sig })}
         />
       )}
-      {mode === "text" && <Field id="h-text" label="text" multiline value={q.text} placeholder="hello" onChange={(text) => set({ text })} />}
-      {mode === "hex" && <Field id="h-hex" label="hex bytes" multiline value={q.hex} placeholder="0x68656c6c6f" error={err} onChange={(hex) => set({ hex })} />}
+      {mode === "text" && <Field id="h-text" label="text" multiline value={q.text} placeholder="e.g. hello" onChange={(text) => set({ text })} />}
+      {mode === "hex" && <Field id="h-hex" label="hex bytes" multiline value={q.hex} placeholder="e.g. 0x68656c6c6f" error={err} onChange={(hex) => set({ hex })} />}
 
       {mode === "selector" && (
         <>

@@ -159,11 +159,11 @@ export function ToolFrame(props: { slug: ToolSlug; mode?: string; status?: "ok" 
     <section className="tcard" aria-label={`${slug} tool`}>
       <div className="tcard-hd">
         <span className="name">
-          <i className={`sq ${status === "live" ? "" : status}`} />
+          <span className="ic"><Icon name={slug} size={14} /></span>
           {String(idx).padStart(2, "0")} {slug}
           {mode ? `.${mode}` : ""}
         </span>
-        <span className="muted">{status === "err" ? "check input" : status === "idle" ? "waiting" : status === "live" ? "live" : "ready"}</span>
+        <span className="st"><i className={`sq ${status === "live" ? "" : status}`} />{status === "err" ? "check input" : status === "idle" ? "waiting" : status === "live" ? "live" : "ready"}</span>
       </div>
       <div className="tcard-bd">{children}</div>
       {code && (

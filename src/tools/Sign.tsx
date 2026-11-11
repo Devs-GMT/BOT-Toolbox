@@ -111,7 +111,7 @@ function SignCard() {
         multiline
         rows={4}
         value={q.msg}
-        placeholder="I approve release v1.2.0"
+        placeholder="e.g. I approve release v1.2.0"
         error={problem}
         hint={mode === "text" ? `${utf8Length(q.msg)} / 280 bytes` : undefined}
         onChange={(msg) => set({ msg })}
@@ -257,7 +257,7 @@ function VerifyCard() {
   return (
     <ToolFrame slug="sign" mode="verify" status={result.error ? "err" : recovered ? (match === false ? "err" : "ok") : "idle"} code={code}>
       <Seg label="message kind" value={kind} options={[{ id: "text", label: "text message" }, { id: "hash", label: "32-byte hash" }]} onChange={(vm) => set({ vm })} />
-      <Field id="v-msg" label={kind === "text" ? "message" : "message hash"} multiline rows={3} value={q.vmsg} placeholder={kind === "text" ? "I approve release v1.2.0" : "0x…"} onChange={(vmsg) => set({ vmsg })} />
+      <Field id="v-msg" label={kind === "text" ? "message" : "message hash"} multiline rows={3} value={q.vmsg} placeholder={kind === "text" ? "e.g. I approve release v1.2.0" : "e.g. 0x9f2c…"} onChange={(vmsg) => set({ vmsg })} />
       <Field id="v-sig" label="signature" value={q.vsig} placeholder="0x…" error={result.error} onChange={(vsig) => set({ vsig })} />
       <Field
         id="v-exp"

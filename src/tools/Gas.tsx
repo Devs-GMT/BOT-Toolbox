@@ -13,7 +13,7 @@ const PRESETS = [
 const trim = (s: string) => s.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
 
 export default function Gas() {
-  const [q, set] = useQueryState({ g: "21000", n: APP_NET as string });
+  const [q, set] = useQueryState({ g: "", n: APP_NET as string });
   const net = (q.n === "mainnet" ? "mainnet" : "testnet") as NetKey;
   const cfg = NETWORKS[net];
   const st = useChainStatus(net);
@@ -33,7 +33,7 @@ export default function Gas() {
       <Seg label="network" value={net} options={[{ id: "testnet", label: "testnet" }, { id: "mainnet", label: "mainnet" }]} onChange={(n) => set({ n })} />
       {!st.ok && <Notice kind="warn">RPC not responding. Trying again every few seconds. The cost below uses the last price we saw, if any.</Notice>}
       <Result label={`gas price · refreshes every 3 s`} value={st.loaded ? `${trim(formatUnits(st.gasPrice, "gwei"))} gwei` : null} highlight empty={st.ok ? "loading…" : "RPC not responding"} />
-      <Field id="g-gas" label="gas units" value={q.g} inputMode="numeric" error={gas.error} onChange={(g) => set({ g })} />
+      <Field id="g-gas" label="gas units" value={q.g} inputMode="numeric" placeholder="e.g. 21000" error={gas.error} onChange={(g) => set({ g })} />
       <div>
         <div className="lbl" style={{ marginBottom: 8 }}>rough examples, real usage varies</div>
         <div className="chips">

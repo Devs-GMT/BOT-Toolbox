@@ -13,32 +13,37 @@ const DEAD = "0x000000000000000000000000000000000000dEaD";
 export default function Abi() {
   const [q, set] = useQueryState({
     m: "encode",
-    sig: "transfer(address,uint256)",
-    vals: `["${DEAD}", "1000"]`,
+    sig: "",
+    vals: "",
     data: "",
-    types: "address,uint256",
-    cvals: `["${DEAD}", "1000"]`,
+    types: "",
+    cvals: "",
   });
   const mode = (MODES.find((m) => m.id === q.m)?.id ?? "encode") as Mode;
 
-  const enc = attempt(() => (mode === "encode" ? encodeCall(q.sig, q.vals) : null));
-  const dec = attempt(() => (mode === "decode" && q.data.trim() ? decodeCall(q.sig, q.data) : null));
-  const args = attempt(() => (mode === "args" ? encodeArgs(q.types, q.cvals) : null));
+  const enc = attempt(() => (mode === "encode" && q.sig.trim() ? encodeCall(q.sig, q.vals) : null));
+  const dec = attempt(() => (mode === "decode" && q.data.trim() && q.sig.trim() ? decodeCall(q.sig, q.data) : null));
+  const args = attempt(() => (mode === "args" && (q.types.trim() || q.cvals.trim()) ? encodeArgs(q.types, q.cvals) : null));
   const err = (mode === "encode" && enc.error) || (mode === "decode" && q.data.trim() ? dec.error : null) || (mode === "args" && args.error) || null;
 
+  // the code drawer shows a worked example until something is typed
+  const sigC = q.sig || "transfer(address,uint256)";
+  const valsC = q.vals || `["${DEAD}", "1000"]`;
+  const typesC = q.types || "address,uint256";
+  const cvalsC = q.cvals || `["${DEAD}", "1000"]`;
   const code =
     mode === "encode"
-      ? `import { Interface } from "ethers";\n\nconst iface = new Interface(["function ${q.sig}"]);\niface.encodeFunctionData("${q.sig.split("(")[0].trim()}", ${q.vals});`
+      ? `import { Interface } from "ethers";\n\nconst iface = new Interface(["function ${sigC}"]);\niface.encodeFunctionData("${sigC.split("(")[0].trim()}", ${valsC});`
       : mode === "decode"
-        ? `import { Interface } from "ethers";\n\nconst iface = new Interface(["function ${q.sig}"]);\niface.decodeFunctionData("${q.sig.split("(")[0].trim()}", "${q.data}");`
-        : `import { AbiCoder } from "ethers";\n\nAbiCoder.defaultAbiCoder().encode(\n  ${JSON.stringify(q.types.split(",").map((t) => t.trim()))},\n  ${q.cvals}\n); // paste without 0x if the explorer asks for raw hex`;
+        ? `import { Interface } from "ethers";\n\nconst iface = new Interface(["function ${sigC}"]);\niface.decodeFunctionData("${sigC.split("(")[0].trim()}", "${q.data || "0xa9059cbb…"}");`
+        : `import { AbiCoder } from "ethers";\n\nAbiCoder.defaultAbiCoder().encode(\n  ${JSON.stringify(typesC.split(",").map((t) => t.trim()))},\n  ${cvalsC}\n); // paste without 0x if the explorer asks for raw hex`;
 
   return (
-    <ToolFrame slug="abi" mode={mode} status={err ? "err" : "ok"} code={code}>
+    <ToolFrame slug="abi" mode={mode} status={err ? "err" : enc.value || dec.value || args.value ? "ok" : "idle"} code={code}>
       <Seg label="abi mode" value={mode} options={MODES} onChange={(m) => set({ m })} />
 
       {mode !== "args" && (
-        <Field id="a-sig" label="function signature" value={q.sig} placeholder="transfer(address,uint256)" onChange={(sig) => set({ sig })} />
+        <Field id="a-sig" label="function signature" value={q.sig} placeholder="e.g. transfer(address,uint256)" onChange={(sig) => set({ sig })} />
       )}
 
       {mode === "encode" && (
@@ -49,6 +54,7 @@ export default function Abi() {
             multiline
             value={q.vals}
             error={enc.error}
+            placeholder={`e.g. ["${DEAD}", "1000"]`}
             hint="Put big numbers in quotes so they keep every digit."
             onChange={(vals) => set({ vals })}
           />
@@ -58,7 +64,7 @@ export default function Abi() {
 
       {mode === "decode" && (
         <>
-          <Field id="a-data" label="calldata" multiline rows={4} value={q.data} placeholder="0xa9059cbb…" error={dec.error} onChange={(data) => set({ data })} />
+          <Field id="a-data" label="calldata" multiline rows={4} value={q.data} placeholder="e.g. 0xa9059cbb000000000000000000000000…" error={dec.error} onChange={(data) => set({ data })} />
           {dec.value && (
             <div className="res">
               <div className="lbl">decoded · {dec.value.name} · selector {dec.value.selector}</div>
@@ -87,8 +93,8 @@ export default function Abi() {
       {mode === "args" && (
         <>
           <Notice>Explorers ask for constructor arguments as ABI-encoded hex with no selector. List the constructor types, then the values.</Notice>
-          <Field id="a-types" label="constructor types" value={q.types} placeholder="address,uint256" onChange={(types) => set({ types })} />
-          <Field id="a-cvals" label="values (JSON array)" multiline value={q.cvals} error={args.error} onChange={(cvals) => set({ cvals })} />
+          <Field id="a-types" label="constructor types" value={q.types} placeholder="e.g. address,uint256" onChange={(types) => set({ types })} />
+          <Field id="a-cvals" label="values (JSON array)" multiline value={q.cvals} placeholder={`e.g. ["${DEAD}", "1000"]`} error={args.error} onChange={(cvals) => set({ cvals })} />
           <Result label="encoded arguments" value={args.value} highlight />
           <Result label="without 0x" value={args.value ? args.value.slice(2) : null} />
         </>

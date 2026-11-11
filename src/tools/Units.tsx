@@ -11,7 +11,7 @@ const FIELDS: { id: UnitField; label: string; hint: string }[] = [
 ];
 
 export default function Units() {
-  const [q, set] = useQueryState({ f: "bot", v: "1", d: "6" });
+  const [q, set] = useQueryState({ f: "bot", v: "", d: "6" });
   const active = (FIELDS.find((f) => f.id === q.f)?.id ?? "bot") as UnitField;
 
   const dec = attempt(() => checkDecimals(Number(q.d === "" ? NaN : q.d)));
@@ -24,7 +24,7 @@ export default function Units() {
   const code = [
     `import { parseUnits, formatUnits } from "ethers";`,
     ``,
-    `const base = ${active === "wei" ? `BigInt("${q.v || "0"}")` : `parseUnits("${q.v || "0"}", ${active === "gwei" ? '"gwei"' : active === "bot" ? 18 : safeDec})`};`,
+    `const base = ${active === "wei" ? `BigInt("${q.v || "1.5"}")` : `parseUnits("${q.v || "1.5"}", ${active === "gwei" ? '"gwei"' : active === "bot" ? 18 : safeDec})`};`,
     `formatUnits(base, 0);       // wei    "${base === null ? "" : all.wei}"`,
     `formatUnits(base, "gwei");  // gwei   "${base === null ? "" : all.gwei}"`,
     `formatUnits(base, 18);      // BOT    "${base === null ? "" : all.bot}"`,
@@ -42,7 +42,7 @@ export default function Units() {
             label={`${f.label} · ${f.hint}`}
             value={shown(f.id)}
             inputMode="decimal"
-            placeholder="0"
+            placeholder="e.g. 1.5"
             error={f.id === active ? parsed.error : null}
             onChange={(v) => set({ f: f.id, v })}
           />

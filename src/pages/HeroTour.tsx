@@ -1,8 +1,10 @@
 import { gsap } from "gsap";
 import { EventFragment, Wallet, formatEther, getAddress } from "ethers";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Icon, Mark } from "../components/icons";
+import { Icon } from "../components/icons";
 import { Odometer } from "../components/ui";
+import PageHead from "../components/PageHead";
+import Sidebar from "../components/Sidebar";
 import { APP_NET, NETWORKS, TOOLS, type NetKey, type ToolSlug } from "../lib/config";
 import { flash, q, typeTo } from "../lib/motion";
 import { getProvider, useChainStatus, withRetry } from "../lib/rpc";
@@ -73,14 +75,13 @@ function Enter({ children }: { children: ReactNode }) {
 }
 
 function Frame({ slug, mode, children, extra }: { slug: ToolSlug; mode: string; children: ReactNode; extra?: ReactNode }) {
-  const t = TOOLS.find((x) => x.slug === slug)!;
   const idx = TOOLS.findIndex((x) => x.slug === slug) + 1;
   return (
     <Enter>
       <div className="main-in">
-        <div className="tool-title"><h1>{t.name}</h1></div>
+        <PageHead slug={slug} demo />
         <section className="tcard">
-          <div className="tcard-hd"><span className="name"><i className="sq ok" />{String(idx).padStart(2, "0")} {slug}.{mode}</span><span className="muted">ready</span></div>
+          <div className="tcard-hd"><span className="name"><span className="ic"><Icon name={slug} size={14} /></span>{String(idx).padStart(2, "0")} {slug}.{mode}</span><span className="st"><i className="sq ok" />ready</span></div>
           <div className="tcard-bd">{children}</div>
           {extra}
         </section>
@@ -492,7 +493,6 @@ export default function HeroTour({ startDelay = 0 }: { startDelay?: number }) {
     const others = SCENES.filter((s, k) => k !== palTarget && s.id !== "verify").slice(0, 3);
     return [t, ...others];
   }, [palTarget]);
-  const tools = TOOLS.map((t, i) => ({ ...t, i }));
 
   return (
     <div ref={root}>
@@ -502,16 +502,7 @@ export default function HeroTour({ startDelay = 0 }: { startDelay?: number }) {
           <span className="wurl" ref={url}>{def.url}</span>
         </div>
         <div className="app">
-          <aside className="side">
-            <a className="brand"><Mark /><span>bot/toolbox</span></a>
-            {tools.map((t) => (
-              <a key={t.slug} className="nav" tabIndex={-1} aria-current={def.nav === t.i ? "page" : undefined}>
-                <Icon name={t.slug} /><span>{t.name}</span><span className="n">{t.i + 1}</span>
-              </a>
-            ))}
-            <div className="grow" />
-            <a className="nav" tabIndex={-1} aria-current={def.id === "verify" ? "page" : undefined}><Icon name="check" /><span>Verify</span></a>
-          </aside>
+          <Sidebar demo active={def.id === "verify" ? "verify" : def.nav} />
           <header className="top">
             <span className="cmdbar"><Icon name="search" size={16} /><span>Find a tool…</span><span className="kbd">{isMac ? "⌘ K" : "ctrl k"}</span></span>
             <span style={{ flex: 1 }} />
@@ -520,6 +511,7 @@ export default function HeroTour({ startDelay = 0 }: { startDelay?: number }) {
             <span className="btn btn-line btn-sm">connect wallet</span>
           </header>
           <main className="main" key={`${scene}-${run}`}>
+            <div className="bgfield" aria-hidden="true" />
             {started && scene === 0 && <SceneHash {...sp} />}
             {started && scene === 1 && <SceneUnits {...sp} />}
             {started && scene === 2 && <SceneAbi {...sp} />}
