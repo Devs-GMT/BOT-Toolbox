@@ -65,7 +65,7 @@ Both modes verify in the browser with `ethers.verifyMessage`.
 | | |
 | --- | --- |
 | Testnet (968) | [`0x641c69B5641774A744F26f83B431c67638F912c3`](https://scan.bohr.life/address/0x641c69B5641774A744F26f83B431c67638F912c3) |
-| Mainnet (677) | not deployed yet, see [docs/DEPLOY-MAINNET.md](docs/DEPLOY-MAINNET.md) |
+| Mainnet (677) | [`0xfeeA1c9F24D12a4D012208cD58925E90DC214F50`](https://scan.botchain.ai/address/0xfeeA1c9F24D12a4D012208cD58925E90DC214F50) |
 
 API: `record(messageHash, signature, text) returns (id)`, `getStatement(id)`, `statementsFor(messageHash)`, `statementsBy(signer)`, `total()`, and the event `Recorded(id, signer, messageHash)`. Text is capped at 280 bytes (bytes, not characters). Malleable (high-s) signatures revert.
 
@@ -88,7 +88,7 @@ npm run build        # type-check and production build into dist/
 
 Stack: Vite, React 18, TypeScript, React Router, ethers v6, GSAP 3.13 (ScrollTrigger, CustomEase), self-hosted IBM Plex fonts. Deep links such as `/tools/hash` and `/verify/12` work on Vercel through the rewrite in `vercel.json`.
 
-Chains, endpoints and the contract address live in one file, [`src/lib/config.ts`](src/lib/config.ts). `APP_NET` decides which network the app records and verifies on.
+Chains, endpoints and the contract address live in one file, [`src/lib/config.ts`](src/lib/config.ts). `APP_NET` decides which network the app records and verifies on (mainnet).
 
 <div align="center">
 <img src="docs/img/mobile-hash.png" alt="Hash tool on a phone" width="260" />
@@ -96,7 +96,7 @@ Chains, endpoints and the contract address live in one file, [`src/lib/config.ts
 
 ## Limits, said plainly
 
-- **Mainnet is not live yet.** The app currently records and verifies on BOT Chain Testnet, and the footer says so. The mainnet contract is deployed by hand from Remix, then the app is switched over.
+- **The app records and verifies on BOT Chain mainnet.** The mainnet contract was deployed from Remix and its runtime bytecode was checked against this repo's build (`contracts/scripts/verify-deployment.js`). The testnet contract stays available for testing.
 - **Anyone can submit a valid signature.** The recorded signer is always the real signer, but the account that paid for the transaction may be someone else. A record proves a key signed these exact words, not that the words are true or who holds the key.
 - **Records are permanent.** There is no delete. Public text stays readable forever. Use hash-only mode for anything private.
 - **Public RPCs reset connections now and then.** Reads retry up to three times, and the footer only shows a problem after two failed polls in a row. Offline tools never depend on the RPC.

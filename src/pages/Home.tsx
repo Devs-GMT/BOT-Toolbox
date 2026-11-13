@@ -187,7 +187,7 @@ function Hero() {
         <h1 ref={h1}>
           <span className="w">Dev </span><span className="w">chores </span><span className="w">that </span><span className="w">do </span><span className="w">themselves.</span>
         </h1>
-        <p className="sub" ref={sub}>Every converter, hash, encoder and signer you keep googling — one fast page for BOT Chain. No servers, no sign-up.</p>
+        <p className="sub" ref={sub}>Every converter, hash, encoder and signer you keep googling, on one fast page for BOT Chain. No servers, no sign-up.</p>
         <div className="cta" ref={cta}>
           <Link to="/tools" className="btn btn-ink">Open the toolbox</Link>
           <span className="hint-k">or press <button className="kbd" onClick={openPalette} style={{ cursor: "pointer" }}>ctrl k</button></span>
@@ -202,7 +202,7 @@ function Hero() {
 }
 
 // ======================================================================
-// 2. Trust bar — only what the site really uses
+// 2. Trust bar: only what the site really uses
 // ======================================================================
 
 function Trust() {
@@ -418,7 +418,7 @@ function SignDemo() {
           <div className="dp-row"><span>recovered</span><div className="dp-val"><span className="ok">✓</span> {demo ? short(demo.signer, 6, 4) : "…"}</div></div>
           <div className="dp-row"><span>on chain</span><div className="dp-val">{rec ? <><span className="ok">✓ recorded</span> · <Link to={`/verify/${rec.id}`}>statement #{rec.id}</Link> · {NETWORKS[APP_NET].label}</> : "recorded statements appear on the verify page"}</div></div>
         </div>
-        <div className="dp-note">The demo key is made in your browser for this animation, nothing is stored or sent. Statement #{rec ? rec.id : 0} is a real record from the project’s test wallet.</div>
+        <div className="dp-note">The demo key is made in your browser for this animation, nothing is stored or sent. {rec ? `Statement #${rec.id} is a real record read from the chain.` : "Real records appear here once they are on the chain."}</div>
       </div>
     </div>
   );
@@ -446,7 +446,7 @@ function Steps() {
 }
 
 // ======================================================================
-// 7. The 8 tools — list + detail, like the reference's agent library
+// 7. The 8 tools: list + detail, like the reference's agent library
 // ======================================================================
 
 interface Detail { cat: string; desc: string; mLabel: string; mValue: string; tag: string; qy: string; ans: string; scope: string }
@@ -538,7 +538,7 @@ function ToolsLib() {
 }
 
 // ======================================================================
-// 8. From anywhere — three art cards with captions
+// 8. From anywhere: three art cards with captions
 // ======================================================================
 
 function Anywhere() {

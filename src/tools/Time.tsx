@@ -11,7 +11,7 @@ const fmtLocal = (ms: number) =>
 export default function Time() {
   const [q, set] = useQueryState({ ts: "", u: "s", d: "", n: APP_NET as string, b: "" });
   const unit = (q.u === "ms" ? "ms" : "s") as TimeUnit;
-  const net = (q.n === "mainnet" ? "mainnet" : "testnet") as NetKey;
+  const net = (q.n === "testnet" ? "testnet" : "mainnet") as NetKey;
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -88,7 +88,7 @@ export default function Time() {
       <hr style={{ border: 0, borderTop: "1px solid var(--line)", width: "100%" }} />
 
       <div className="lbl">block ↔ time</div>
-      <Seg label="network" value={net} options={[{ id: "testnet", label: "testnet" }, { id: "mainnet", label: "mainnet" }]} onChange={(n) => set({ n })} />
+      <Seg label="network" value={net} options={[{ id: "mainnet", label: "mainnet" }, { id: "testnet", label: "testnet" }]} onChange={(n) => set({ n })} />
       {!head.ok && <Notice kind="warn">RPC not responding. Block conversions need the live chain head. Everything above still works.</Notice>}
       <dl className="kv">
         <dt>latest block</dt>

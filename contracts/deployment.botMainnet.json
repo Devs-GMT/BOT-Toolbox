@@ -1,0 +1,7 @@
+{
+  "network": "botMainnet",
+  "chainId": 677,
+  "address": "0xfeeA1c9F24D12a4D012208cD58925E90DC214F50",
+  "runtimeCodeHash": "0xb907c5f4976ea300189bc28b49b04ecc659c44c13ef61de9800bc6149dc38772",
+  "verifiedAgainstBuild": "Statements.sol, solc 0.8.24, optimizer 200, paris"
+}

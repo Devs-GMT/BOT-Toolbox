@@ -41,7 +41,7 @@ function NetCard({ net }: { net: NetKey }) {
         <dt>block height</dt>
         <dd>{st.loaded ? <Odometer value={st.blockNumber} /> : st.ok ? "loading…" : "RPC not responding"}</dd>
         <dt>since last block</dt>
-        <dd>{since === null ? "–" : `${since} s`}</dd>
+        <dd>{since === null ? "n/a" : `${since} s`}</dd>
       </dl>
       {err && <Notice kind="bad">{err}</Notice>}
       <div>
@@ -68,8 +68,8 @@ function NetCard({ net }: { net: NetKey }) {
 export default function Network() {
   return (
     <div style={{ display: "grid", gap: 20 }}>
-      <NetCard net="testnet" />
       <NetCard net="mainnet" />
+      <NetCard net="testnet" />
     </div>
   );
 }

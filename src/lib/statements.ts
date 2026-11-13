@@ -108,7 +108,7 @@ export function describeContractError(e: unknown): string {
       /* unknown error, use the generic text below */
     }
   }
-  if (/insufficient funds/i.test(err?.shortMessage ?? "")) return "Not enough BOT for gas. Use the faucet on testnet.";
+  if (/insufficient funds/i.test(err?.shortMessage ?? "")) return APP_NET === "testnet" ? "Not enough tBOT for gas. Use the faucet." : "Not enough BOT for gas. Add a little BOT to your wallet and try again.";
   return err?.shortMessage || "The transaction failed. Try again.";
 }
 

@@ -14,7 +14,7 @@ const trim = (s: string) => s.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
 
 export default function Gas() {
   const [q, set] = useQueryState({ g: "", n: APP_NET as string });
-  const net = (q.n === "mainnet" ? "mainnet" : "testnet") as NetKey;
+  const net = (q.n === "testnet" ? "testnet" : "mainnet") as NetKey;
   const cfg = NETWORKS[net];
   const st = useChainStatus(net);
 
@@ -30,7 +30,7 @@ export default function Gas() {
 
   return (
     <ToolFrame slug="gas" mode="price" status={!st.ok ? "err" : st.loaded ? "live" : "idle"} code={code}>
-      <Seg label="network" value={net} options={[{ id: "testnet", label: "testnet" }, { id: "mainnet", label: "mainnet" }]} onChange={(n) => set({ n })} />
+      <Seg label="network" value={net} options={[{ id: "mainnet", label: "mainnet" }, { id: "testnet", label: "testnet" }]} onChange={(n) => set({ n })} />
       {!st.ok && <Notice kind="warn">RPC not responding. Trying again every few seconds. The cost below uses the last price we saw, if any.</Notice>}
       <Result label={`gas price · refreshes every 3 s`} value={st.loaded ? `${trim(formatUnits(st.gasPrice, "gwei"))} gwei` : null} highlight empty={st.ok ? "loading…" : "RPC not responding"} />
       <Field id="g-gas" label="gas units" value={q.g} inputMode="numeric" placeholder="e.g. 21000" error={gas.error} onChange={(g) => set({ g })} />

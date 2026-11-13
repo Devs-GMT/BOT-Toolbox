@@ -109,7 +109,7 @@ export function Footer() {
           <Link className="fl" to="/docs">Docs</Link>
           <Link className="fl" to="/guides/function-selector">Guides</Link>
           <a className="fl" href={LINKS.docs} target="_blank" rel="noopener noreferrer">BOT Chain docs</a>
-          <a className="fl" href={NETWORKS.testnet.faucet} target="_blank" rel="noopener noreferrer">Faucet</a>
+          <a className="fl" href={NETWORKS.testnet.faucet} target="_blank" rel="noopener noreferrer">Testnet faucet</a>
         </div>
         <div>
           <h3>Project</h3>
@@ -137,7 +137,7 @@ export function Footer() {
                 <span className="foot-addr">Statements · {short(statementsAddress, 6, 4)} <CopyButton text={statementsAddress} /></span>
                 <a className="btn btn-accent btn-sm" href={`${net.explorer}/address/${statementsAddress}`} target="_blank" rel="noopener noreferrer">View on explorer ↗</a>
                 <span className="foot-count" title={`Statements recorded on ${net.label}`}>
-                  STATEMENTS {typeof total === "number" ? total.toLocaleString("en-US") : total === "down" ? "–" : "…"}
+                  STATEMENTS {typeof total === "number" ? total.toLocaleString("en-US") : total === "down" ? "n/a" : "…"}
                 </span>
               </>
             ) : (

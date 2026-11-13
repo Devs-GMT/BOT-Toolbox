@@ -40,15 +40,15 @@ export const NETWORKS: Record<NetKey, NetConfig> = {
 
 /** Statements contract per network. Empty string means "not deployed yet". */
 export const STATEMENTS_ADDRESS: Record<NetKey, string> = {
-  mainnet: "",
+  mainnet: "0xfeeA1c9F24D12a4D012208cD58925E90DC214F50",
   testnet: "0x641c69B5641774A744F26f83B431c67638F912c3",
 };
 
 /**
  * Which network the app records and verifies statements on.
- * Flip to "mainnet" once the mainnet contract address above is filled in.
+ * Mainnet since the contract was deployed and its bytecode matched the tested build.
  */
-export const APP_NET: NetKey = "testnet";
+export const APP_NET: NetKey = "mainnet";
 
 export const LINKS = {
   botchain: "https://botchain.ai",

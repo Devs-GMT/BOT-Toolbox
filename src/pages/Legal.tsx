@@ -20,7 +20,7 @@ const DOCS = {
       ["Not advice", "Nothing here is financial, legal or investment advice. Gas figures and the preset examples are rough illustrations, real costs vary."],
       ["Signing", "Only sign messages you understand. A signature can authorise actions in other applications. You are responsible for what you sign and for what you record on chain."],
       ["The Statements contract", "The contract has no owner, no admin and no way to remove a record. Statements are permanent. A recorded statement proves that a key signed some words, not that the words are true or that the signer is who they claim to be."],
-      ["Testnet", "While the app is pointed at BOT Chain Testnet, test tokens have no value and records on that network may be reset or lost."],
+      ["Mainnet and testnet", "The app records and verifies statements on BOT Chain mainnet. Recording sends a real transaction and costs a small gas fee in BOT, which is not refundable. A separate Statements contract on BOT Chain Testnet exists for testing: test tokens have no value and records on that network may be reset or lost."],
     ],
   },
 } as const;

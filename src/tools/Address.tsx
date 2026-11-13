@@ -79,7 +79,7 @@ export default function Address() {
                   <tr key={n}>
                     <td>{cfg.label}</td>
                     <td>{l.state === "loading" ? "checking…" : l.state === "down" ? "RPC not responding" : l.size ? `contract · ${l.size} bytes` : "no code (wallet)"}</td>
-                    <td>{l.state === "ok" ? `${Number(l.balance).toLocaleString("en-US", { maximumFractionDigits: 6 })} ${cfg.symbol}` : "–"}</td>
+                    <td>{l.state === "ok" ? `${Number(l.balance).toLocaleString("en-US", { maximumFractionDigits: 6 })} ${cfg.symbol}` : "n/a"}</td>
                     <td>
                       <ExtLink href={`${cfg.explorer}/address/${info.checksum}`}>view</ExtLink>
                     </td>

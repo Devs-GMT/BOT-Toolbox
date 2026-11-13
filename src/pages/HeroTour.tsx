@@ -271,7 +271,7 @@ function SceneAddress(p: SceneProps) {
       <tr key={n}>
         <td>{c.label}</td>
         <td>{l.s === "loading" ? "checking…" : l.s === "down" ? "RPC not responding" : l.size ? `contract · ${groupDigits(l.size)} bytes` : "no code (wallet)"}</td>
-        <td>{l.s === "ok" ? `${Number(l.bal).toLocaleString("en-US", { maximumFractionDigits: 4 })} ${c.symbol}` : "–"}</td>
+        <td>{l.s === "ok" ? `${Number(l.bal).toLocaleString("en-US", { maximumFractionDigits: 4 })} ${c.symbol}` : "n/a"}</td>
       </tr>
     );
   };
@@ -317,7 +317,7 @@ function SceneGas(p: SceneProps) {
   );
   return (
     <Frame slug="gas" mode="price">
-      <div className="seg"><button type="button" aria-pressed="true" tabIndex={-1}>testnet</button><button type="button" aria-pressed="false" tabIndex={-1}>mainnet</button></div>
+      <div className="seg"><button type="button" aria-pressed="true" tabIndex={-1}>mainnet</button><button type="button" aria-pressed="false" tabIndex={-1}>testnet</button></div>
       <div className="res"><div className="lbl">gas price · refreshes every 3 s</div><div className="res-box hl"><span className="val" ref={price} /><span className="fl" ref={fl} /><span className="copy">copy</span></div></div>
       <Fld label="gas units"><span ref={gasEl} /><i className="bcaret" /></Fld>
       <div ref={chips}><div className="lbl" style={{ marginBottom: 8 }}>rough examples, real usage varies</div><div className="chips"><span className="chip">simple transfer · ~21,000</span><span className="chip">token transfer · ~50,000</span><span className="chip">contract deploy · ~1,000,000</span></div></div>
@@ -411,7 +411,7 @@ function SceneVerify(p: SceneProps) {
   if (s === "down" || s === null) {
     return <Enter><div className="main-in"><div className="tool-title"><h1>Verify</h1></div><div className="note warn">{s === null ? "Reading statement #0 from the chain…" : "RPC not responding. The recorded statement could not be read just now."}</div></div></Enter>;
   }
-  if (!s) return <Enter><div className="main-in"><div className="note">Statement not found.</div></div></Enter>;
+  if (!s) return <Enter><div className="main-in"><div className="tool-title"><h1>Verify</h1></div><div className="note">No statements recorded yet. Sign a message and be the first.</div></div></Enter>;
   return (
     <Enter><div className="main-in">
       <div ref={parts} style={{ display: "grid", gap: 16 }}>
