@@ -1,6 +1,6 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Wallet, formatUnits, getAddress } from "ethers";
+import { Wallet, formatUnits, getAddress, hashMessage, id as keccakId } from "ethers";
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { Link } from "react-router-dom";
 import { Footer, SiteNav, useStatementsTotal } from "../components/Site";
@@ -597,7 +597,51 @@ const COVERS = [
   "linear-gradient(160deg, #0f4d44, #58c2ac 55%, #0a2f2a)",
   "linear-gradient(140deg, #1d3f7a, #8fb0ee 55%, #0c1f3d)",
 ];
-const COVER_TEXT = ["0xa9059cbb", "10^18", "0x19…"];
+
+/** Small illustrations for the guide cards. Every value is computed by the same code the tools use. */
+function GuideArt({ kind }: { kind: number }) {
+  if (kind === 0) {
+    const full = keccakId(HERO_SIG);
+    const sel = full.slice(2, 10);
+    return (
+      <div className="ga">
+        <div className="ga-lbl">function signature</div>
+        <div className="ga-box">{HERO_SIG}</div>
+        <div className="ga-down">keccak256</div>
+        <div className="ga-lbl">hash, first 4 bytes</div>
+        <div className="ga-box ga-hash"><b>0x{sel}</b><span>{full.slice(10, 26)}…</span></div>
+        <div className="ga-foot"><i className="sq" />the selector</div>
+      </div>
+    );
+  }
+  if (kind === 1) {
+    const wei = toBase("bot", "1", 18)!;
+    const gweiRow = groupDigits(trim0(allUnits(wei, 18).gwei));
+    const weiRow = groupDigits(allUnits(wei, 18).wei);
+    return (
+      <div className="ga">
+        <div className="ga-row"><span>BOT</span><b>1</b></div>
+        <div className="ga-down">× 10<sup>9</sup></div>
+        <div className="ga-row"><span>gwei</span><b>{gweiRow}</b></div>
+        <div className="ga-down">× 10<sup>9</sup></div>
+        <div className="ga-row"><span>wei</span><b style={{ fontSize: 10.5 }}>{weiRow}</b></div>
+        <div className="ga-foot"><i className="sq" />20 gwei = {trim0(formatUnits(20n * 10n ** 9n, 18))} BOT</div>
+      </div>
+    );
+  }
+  const msg = "I approve release v1.2.0";
+  const digest = hashMessage(msg);
+  return (
+    <div className="ga">
+      <div className="ga-lbl">message</div>
+      <div className="ga-box">{msg}</div>
+      <div className="ga-down">+ EIP-191 prefix, hash</div>
+      <div className="ga-lbl">digest the wallet signs</div>
+      <div className="ga-box">{short(digest, 10, 8)}</div>
+      <div className="ga-ok">✓ signer recovered from the signature</div>
+    </div>
+  );
+}
 
 function Tail() {
   const root = useRef<HTMLDivElement>(null);
@@ -614,9 +658,10 @@ function Tail() {
         <div className="guides-row">
           {GUIDES.map((g, i) => (
             <Link key={g.slug} to={`/guides/${g.slug}`} className="gcard rv">
-              <div className="cover" style={{ ["--cv" as string]: COVERS[i] }}><span>{COVER_TEXT[i]}</span></div>
+              <div className="cover" data-field style={{ ["--cv" as string]: COVERS[i] }}><i className="fd" aria-hidden="true" /><GuideArt kind={i} /></div>
               <div className="meta"><span>Guide</span><span>{g.minutes} min read</span></div>
               <h3>{g.title}</h3>
+              <p className="gc-lede">{g.lede}</p>
             </Link>
           ))}
         </div>
